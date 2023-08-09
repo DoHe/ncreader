@@ -8,7 +8,9 @@ import { createDrawerNavigator } from '@react-navigation/drawer';
 import { NavigationContainer } from '@react-navigation/native';
 import PropTypes from 'prop-types';
 
-import mock from './mock';
+import feedsMock from './mocks/feeds.json';
+// import foldersMock from './mocks/folders.json';
+import itemsMock from './mocks/items.json';
 
 const feedStyles = StyleSheet.create({
   container: {
@@ -19,17 +21,27 @@ const feedStyles = StyleSheet.create({
   },
 });
 
-function Feed({ category, mocked }) {
-  const [data, setData] = useState([]);
+function Feed({ folderId, mocked }) {
+  const [itemsData, setItemsData] = useState([]);
 
   const getData = async () => {
     try {
       if (mocked) {
-        setData(mock[category]);
+        const feedsInFolder = feedsMock.feeds.filter(
+          (item) => item.folderId === folderId,
+        );
+        const feedsMap = Object.fromEntries(feedsInFolder.map((feed) => [feed.id, feed]));
+        const feedIds = Object.keys(feedsMap);
+        const items = itemsMock.items.filter(
+          (item) => feedIds.includes(`${item.feedId}`),
+        ).map(
+          (item) => ({ ...item, favicon: feedsMap[`${item.feedId}`].faviconLink }),
+        );
+        setItemsData(items);
       } else {
         const response = await fetch('https://reactnative.dev/movies.json');
         const json = await response.json();
-        setData(json.movies);
+        setItemsData(json.movies);
       }
     } catch (error) {
       console.error(error);
@@ -44,7 +56,7 @@ function Feed({ category, mocked }) {
     <View style={feedStyles.container}>
       <FlatList
         style={{ marginLeft: 10, marginRight: 10 }}
-        data={data}
+        data={itemsData}
         keyExtractor={({ id }) => id}
         renderItem={({ item }) => (
           <View style={{ marginTop: 20 }}>
@@ -79,15 +91,15 @@ function Feed({ category, mocked }) {
 }
 
 Feed.propTypes = {
-  category: PropTypes.string.isRequired,
+  folderId: PropTypes.number.isRequired,
   mocked: PropTypes.bool.isRequired,
 };
 
 const Drawer = createDrawerNavigator();
 
 export default function App() {
-  const ITFeed = () => Feed({ category: 'IT', mocked: true });
-  const ComicsFeed = () => Feed({ category: 'Comics', mocked: true });
+  const MiscFeed = () => Feed({ folderId: 3, mocked: true });
+  const NewsFeed = () => Feed({ folderId: 1, mocked: true });
   return (
     <NavigationContainer>
       <Drawer.Navigator
@@ -102,8 +114,8 @@ export default function App() {
       }}
       initialRouteName="Home"
       >
-        <Drawer.Screen name="IT" component={ITFeed} />
-        <Drawer.Screen name="Comics" component={ComicsFeed} />
+        <Drawer.Screen name="Misc" component={MiscFeed} />
+        <Drawer.Screen name="News" component={NewsFeed} />
       </Drawer.Navigator>
     </NavigationContainer>
   );
