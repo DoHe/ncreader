@@ -5,11 +5,13 @@ import {
 import { WebView } from 'react-native-webview';
 import React, { useEffect, useState } from 'react';
 import { createDrawerNavigator } from '@react-navigation/drawer';
-import { NavigationContainer } from '@react-navigation/native';
+import {
+  NavigationContainer,
+} from '@react-navigation/native';
 import PropTypes from 'prop-types';
 
 import feedsMock from './mocks/feeds.json';
-// import foldersMock from './mocks/folders.json';
+import foldersMock from './mocks/folders.json';
 import itemsMock from './mocks/items.json';
 
 const feedStyles = StyleSheet.create({
@@ -98,24 +100,37 @@ Feed.propTypes = {
 const Drawer = createDrawerNavigator();
 
 export default function App() {
-  const MiscFeed = () => Feed({ folderId: 3, mocked: true });
-  const NewsFeed = () => Feed({ folderId: 1, mocked: true });
+  const folders = [...foldersMock.folders];
+  folders.sort((a, b) => {
+    if (a.name < b.name) {
+      return -1;
+    }
+    if (a.name > b.name) {
+      return 1;
+    }
+    return 0;
+  });
+
+  const screens = folders.map((folder) => {
+    const FolderFeed = () => Feed({ folderId: folder.id, mocked: true });
+    return <Drawer.Screen key={folder.id} name={folder.name} component={FolderFeed} />;
+  });
+
   return (
     <NavigationContainer>
       <Drawer.Navigator
-      screenOptions={{
-        headerStyle: {
-          backgroundColor: '#f4511e',
-        },
-        headerTintColor: '#fff',
-        headerTitleStyle: {
-          fontWeight: 'bold',
-        },
-      }}
-      initialRouteName="Home"
+        screenOptions={{
+          headerStyle: {
+            backgroundColor: '#f4511e',
+          },
+          headerTintColor: '#fff',
+          headerTitleStyle: {
+            fontWeight: 'bold',
+          },
+        }}
+        initialRouteName="Home"
       >
-        <Drawer.Screen name="Misc" component={MiscFeed} />
-        <Drawer.Screen name="News" component={NewsFeed} />
+        {screens}
       </Drawer.Navigator>
     </NavigationContainer>
   );
