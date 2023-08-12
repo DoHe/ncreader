@@ -1,9 +1,8 @@
-import React from 'react';
-import { useIsFocused } from '@react-navigation/native';
+import React, { useState } from 'react';
 import {
   createDrawerNavigator, DrawerContentScrollView, DrawerItem,
 } from '@react-navigation/drawer';
-import { Linking, useWindowDimensions } from 'react-native';
+import { Linking, useWindowDimensions, View } from 'react-native';
 import PropTypes from 'prop-types';
 import { Icon } from '@rneui/themed';
 import Feed from './feed';
@@ -12,19 +11,47 @@ import { breakPointDesktop } from '../constants';
 import foldersMock from '../mocks/folders.json';
 import feedsMock from '../mocks/feeds.json';
 
+function FolderDrawerItem({ props, options, route }) {
+  options.setIsVisible(props.state.routes[props.state.index].key === route.key);
+  return (<DrawerItem
+    key={route.key}
+    label={route.name}
+    labelStyle={{ color: '#000000', fontSize: 12, fontWeight: 'bold' }}
+    icon={() => (<Icon name='arrow-drop-down' />)}
+    focused={props.state.routes[props.state.index].key === route.key}
+    onPress={() => {
+      props.navigation.navigate(route.name);
+    }}
+  />);
+}
+
+function FeedDrawerItem({ props, options, route }) {
+  if (!options.isVisible && props.state.routes[props.state.index].key !== route.key) {
+    return <View key={route.key}/>;
+  }
+  return (<DrawerItem
+    key={route.key}
+    label={route.name}
+    labelStyle={{ color: '#333333', fontSize: 10 }}
+    icon={() => (<Icon name='arrow-drop-up' />)}
+    focused={props.state.routes[props.state.index].key === route.key}
+    onPress={() => {
+      props.navigation.navigate(route.name);
+    }}
+  />);
+}
+
 function CustomDrawerItemList(props) {
-  const folders = Object.values(props.descriptors).map(({ route }) => (
-    <DrawerItem
-        key={route.key}
-        label={route.name}
-        labelStyle={{ color: '#fbae41', fontSize: 10 }}
-        icon={() => (<Icon name='rowing' />)}
-        focused={props.state.routes[props.state.index].key === route.key}
-        onPress={() => {
-          props.navigation.navigate(route.name);
-        }}
-      />
-  ));
+  const folders = Object.values(props.descriptors).map(({ route, options }) => {
+    if (options.feedType === 'folder') {
+      return FolderDrawerItem({ props, route, options });
+    }
+    if (options.feedType === 'feed') {
+      return FeedDrawerItem({ props, route, options });
+    }
+    return <View key={route.key}/>;
+  });
+
   return (
     <DrawerContentScrollView {...props}>
       {/* <DrawerItemList {...props} /> */}
@@ -62,16 +89,27 @@ const Drawer = createDrawerNavigator();
 export default function CustomDrawer() {
   const dimensions = useWindowDimensions();
   const folders = sortedAlphabetically(foldersMock.folders, 'name');
-
-  const screens = folders.map((folder) => {
-    const FolderFeed = () => Feed({ folderId: folder.id });
-    return <Drawer.Screen key={folder.id} name={folder.name} component={FolderFeed} />;
-  });
-
   const feeds = sortedAlphabetically(feedsMock.feeds, 'name');
-  feeds.forEach((feed) => {
-    const FeedFeed = () => Feed({ feedId: feed.id });
-    screens.push(<Drawer.Screen key={feed.id} name={feed.title} component={FeedFeed} />);
+
+  const screens = [];
+  folders.forEach((folder) => {
+    const [isVisible, setIsVisible] = useState(false);
+    const FolderFeed = () => Feed({ folderId: folder.id });
+    screens.push(<Drawer.Screen
+      key={folder.id}
+      name={folder.name}
+      component={FolderFeed}
+      options={{ setIsVisible, feedType: 'folder' }}/>);
+    feeds.forEach((feed) => {
+      if (feed.folderId === folder.id) {
+        const FeedFeed = () => Feed({ feedId: feed.id });
+        screens.push(<Drawer.Screen
+          key={feed.id}
+          name={feed.title}
+          component={FeedFeed}
+          options={{ isVisible, feedType: 'feed' }} />);
+      }
+    });
   });
 
   const UnreadFeed = () => Feed({ unread: true });
