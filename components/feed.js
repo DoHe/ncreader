@@ -33,27 +33,60 @@ const imageFromBody = (body) => {
   return match[1];
 };
 
-function Feed({ folderId, mocked }) {
+function mapItem(item, feedsMap) {
+  return {
+    ...item,
+    feedFavicon: feedsMap[`${item.feedId}`].faviconLink,
+    feedTitle: feedsMap[`${item.feedId}`].title,
+    previewImageURL: item.enclosureLink || imageFromBody(item.body),
+  };
+}
+
+function itemsForFolder(folderId) {
+  const feedsInFolder = feedsMock.feeds.filter(
+    (feed) => feed.folderId === folderId,
+  );
+  const feedsMap = Object.fromEntries(feedsInFolder.map((feed) => [feed.id, feed]));
+  const feedIds = Object.keys(feedsMap);
+  return itemsMock.items.filter(
+    (item) => feedIds.includes(`${item.feedId}`),
+  ).map(
+    (item) => (mapItem(item, feedsMap)),
+  );
+}
+
+function itemsForFeed(feedId) {
+  const feedForId = feedsMock.feeds.find((feed) => feed.id === feedId);
+  const feedsMap = {};
+  feedsMap[feedId] = feedForId;
+  return itemsMock.items.filter(
+    (item) => feedId === item.feedId,
+  ).map(
+    (item) => (mapItem(item, feedsMap)),
+  );
+}
+
+function unreadItems() {
+  const feedsMap = Object.fromEntries(feedsMock.feeds.map((feed) => [feed.id, feed]));
+  return itemsMock.items.filter((item) => item.unread).map((item) => mapItem(item, feedsMap));
+}
+
+function Feed({
+  folderId, feedId, unread, mocked = true,
+}) {
   const [itemsData, setItemsData] = useState([]);
 
   const getData = async () => {
     try {
       if (mocked) {
-        const feedsInFolder = feedsMock.feeds.filter(
-          (item) => item.folderId === folderId,
-        );
-        const feedsMap = Object.fromEntries(feedsInFolder.map((feed) => [feed.id, feed]));
-        const feedIds = Object.keys(feedsMap);
-        const items = itemsMock.items.filter(
-          (item) => feedIds.includes(`${item.feedId}`),
-        ).map(
-          (item) => ({
-            ...item,
-            feedFavicon: feedsMap[`${item.feedId}`].faviconLink,
-            feedTitle: feedsMap[`${item.feedId}`].title,
-            previewImageURL: item.enclosureLink || imageFromBody(item.body),
-          }),
-        );
+        let items = [];
+        if (folderId) {
+          items = itemsForFolder(folderId);
+        } else if (feedId) {
+          items = itemsForFeed(feedId);
+        } else if (unread) {
+          items = unreadItems();
+        }
         setItemsData(items);
       } else {
         const response = await fetch('https://reactnative.dev/movies.json');
@@ -154,8 +187,10 @@ function Feed({ folderId, mocked }) {
 }
 
 Feed.propTypes = {
-  folderId: PropTypes.number.isRequired,
-  mocked: PropTypes.bool.isRequired,
+  folderId: PropTypes.number,
+  feedId: PropTypes.number,
+  unread: PropTypes.bool,
+  mocked: PropTypes.bool,
 };
 
 export default Feed;

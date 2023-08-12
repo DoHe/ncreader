@@ -2,6 +2,21 @@
   "starredCount": 10,
   "feeds": [
     {
+      "id": 50,
+      "url": "http://www.cad-comic.com/rss/rss.xml",
+      "title": "Ctrl+Alt+Del Comic",
+      "faviconLink": "https://cad-comic.com/favicon.ico",
+      "added": 1669366060,
+      "folderId": 1,
+      "unreadCount": 0,
+      "ordering": 0,
+      "link": "https://cad-comic.com/",
+      "pinned": false,
+      "updateErrorCount": 0,
+      "lastUpdateError": null,
+      "items": []
+    },
+    {
       "id": 3,
       "url": "http://www.quantamagazine.org/feed/",
       "title": "Quanta Magazine",
