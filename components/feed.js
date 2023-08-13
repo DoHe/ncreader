@@ -1,29 +1,21 @@
 import 'react-native-gesture-handler';
 import {
-  StyleSheet, Text, View, FlatList, Image, Platform, useWindowDimensions,
+  StyleSheet, View, FlatList, Image, Platform, useWindowDimensions,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import React, { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
-import { Card, Icon } from '@rneui/themed';
+import { Card, Text } from '@rneui/themed';
 
 import moment from 'moment';
 import feedsMock from '../mocks/feeds.json';
 import foldersMock from '../mocks/folders.json';
 import itemsMock from '../mocks/items.json';
 import { breakPointDesktop } from '../constants';
+import StyledView from './styledView';
 
 const htmlTagsRegex = /(<([^>]+)>)/ig;
 const imageRegex = /<img[\s\S]*?src="(.*?)"[\s\S]*?>/;
-
-const feedStyles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
 
 const imageFromBody = (body) => {
   const match = body.match(imageRegex);
@@ -106,7 +98,11 @@ function Feed({
   const bodyPreviewSize = dimensions.width >= breakPointDesktop ? 400 : 100;
 
   return (
-    <View style={feedStyles.container}>
+    <StyledView style={{
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+    }}>
       <FlatList
         style={{ marginLeft: 5, marginRight: 5, width: '100%' }}
         data={itemsData}
@@ -119,11 +115,13 @@ function Feed({
               justifyContent: 'space-between',
               gap: 10,
             }}>
-              <View style={{ flexShrink: 10 }}>
+              <View style={{
+                display: 'flex',
+                flexShrink: 10,
+              }}>
                 <Text style={{
-                  fontWeight: 'bold',
-                }}
-                >
+                  fontWeight: item.unread ? 'bold' : 'normal',
+                }}>
                   {item.title}
                 </Text>
                 {/* <View>
@@ -138,15 +136,19 @@ function Feed({
                       }}
                     />)}
                     </View> */}
-                <Text>
+                <Text style={{
+                  // color: !item.unread && 'gray',
+                  marginBottom: 5,
+                  marginTop: 5,
+                }}>
                   { `${item.body.replace(htmlTagsRegex, '').trim().slice(0, bodyPreviewSize)}...` }
                 </Text>
                 <Text
                   style={{
                     display: 'flex',
                     fontStyle: 'italic',
-                    color: 'gray',
                     alignItems: 'center',
+                    marginTop: 'auto',
                   }}
                 >
                   { item.feedFavicon && (
@@ -168,21 +170,21 @@ function Feed({
                   </Text>
                 </Text>
               </View>
-            { item.previewImageURL && (
-              <Image
-                source={{ uri: item.previewImageURL }}
-                style={{
-                  width: 80,
-                  height: 80,
-                  borderRadius: 20,
-                }}
-              />
-            )}
+              { item.previewImageURL && (
+                <Image
+                  source={{ uri: item.previewImageURL }}
+                  style={{
+                    width: 80,
+                    height: 80,
+                    borderRadius: 20,
+                  }}
+                />
+              )}
             </View>
           </Card>
         )}
       />
-    </View>
+    </StyledView>
   );
 }
 

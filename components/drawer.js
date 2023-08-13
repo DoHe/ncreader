@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import {
   createDrawerNavigator, DrawerContentScrollView, DrawerItem,
 } from '@react-navigation/drawer';
-import { Linking, useWindowDimensions, View } from 'react-native';
+import {
+  Linking, useWindowDimensions, View,
+} from 'react-native';
 import PropTypes from 'prop-types';
-import { Icon } from '@rneui/themed';
+import { Icon, useTheme, Text } from '@rneui/themed';
 import Feed from './feed';
 
 import { breakPointDesktop } from '../constants';
@@ -12,28 +14,47 @@ import foldersMock from '../mocks/folders.json';
 import feedsMock from '../mocks/feeds.json';
 
 function FolderDrawerItem({ props, options, route }) {
-  options.setIsVisible(props.state.routes[props.state.index].key === route.key);
-  return (<DrawerItem
-    key={route.key}
-    label={route.name}
-    labelStyle={{ color: '#000000', fontSize: 12, fontWeight: 'bold' }}
-    icon={() => (<Icon name='arrow-drop-down' />)}
-    focused={props.state.routes[props.state.index].key === route.key}
-    onPress={() => {
-      props.navigation.navigate(route.name);
-    }}
-  />);
+  const [icon, setIcon] = useState('caret-down');
+  return (<Text
+      key={route.key}
+      style={{
+        paddingLeft: 10,
+      }}
+    >
+    <Icon
+      name={icon}
+      type='font-awesome'
+      onPress={() => {
+        options.setIsVisible(!options.isVisible);
+        setIcon(options.isVisible ? 'caret-down' : 'caret-up');
+      }}
+    />
+    <DrawerItem
+      label={route.name}
+      labelStyle={{ fontSize: 12, fontWeight: 'bold', color: options.theme.colors.black }}
+      focused={props.state.routes[props.state.index].key === route.key}
+      onPress={() => { props.navigation.navigate(route.name); }}
+    />
+  </Text>);
 }
 
+FolderDrawerItem.propTypes = {
+  route: PropTypes.object.isRequired,
+  navigation: PropTypes.object.isRequired,
+  options: PropTypes.object.isRequired,
+  state: PropTypes.object.isRequired,
+  props: PropTypes.object.isRequired,
+};
+
 function FeedDrawerItem({ props, options, route }) {
-  if (!options.isVisible && props.state.routes[props.state.index].key !== route.key) {
+  if (!options.isVisible) {
     return <View key={route.key}/>;
   }
   return (<DrawerItem
     key={route.key}
     label={route.name}
-    labelStyle={{ color: '#333333', fontSize: 10 }}
-    icon={() => (<Icon name='arrow-drop-up' />)}
+    labelStyle={{ fontSize: 10, color: options.theme.colors.black }}
+    icon={() => (<Icon name="rss-box" type="material-community" />)}
     focused={props.state.routes[props.state.index].key === route.key}
     onPress={() => {
       props.navigation.navigate(route.name);
@@ -41,15 +62,35 @@ function FeedDrawerItem({ props, options, route }) {
   />);
 }
 
+FeedDrawerItem.propTypes = {
+  route: PropTypes.object.isRequired,
+  navigation: PropTypes.object.isRequired,
+  options: PropTypes.object.isRequired,
+  state: PropTypes.object.isRequired,
+  props: PropTypes.object.isRequired,
+};
+
 function CustomDrawerItemList(props) {
   const folders = Object.values(props.descriptors).map(({ route, options }) => {
-    if (options.feedType === 'folder') {
-      return FolderDrawerItem({ props, route, options });
+    switch (options.feedType) {
+      case 'folder':
+        return FolderDrawerItem({ props, route, options });
+      case 'feed':
+        return FeedDrawerItem({ props, route, options });
+      case 'unread':
+        return (<DrawerItem
+          key={route.key}
+          label={route.name}
+          labelStyle={{ fontSize: 10, color: options.theme.colors.black }}
+          icon={() => (<Icon name="eyeo" type="ant-design" />)}
+          focused={props.state.routes[props.state.index].key === route.key}
+          onPress={() => {
+            props.navigation.navigate(route.name);
+          }}
+        />);
+      default:
+        return <View key={route.key}/>;
     }
-    if (options.feedType === 'feed') {
-      return FeedDrawerItem({ props, route, options });
-    }
-    return <View key={route.key}/>;
   });
 
   return (
@@ -90,6 +131,7 @@ export default function CustomDrawer() {
   const dimensions = useWindowDimensions();
   const folders = sortedAlphabetically(foldersMock.folders, 'name');
   const feeds = sortedAlphabetically(feedsMock.feeds, 'name');
+  const { theme } = useTheme();
 
   const screens = [];
   folders.forEach((folder) => {
@@ -99,7 +141,9 @@ export default function CustomDrawer() {
       key={folder.id}
       name={folder.name}
       component={FolderFeed}
-      options={{ setIsVisible, feedType: 'folder' }}/>);
+      options={{
+        isVisible, setIsVisible, feedType: 'folder', theme,
+      }}/>);
     feeds.forEach((feed) => {
       if (feed.folderId === folder.id) {
         const FeedFeed = () => Feed({ feedId: feed.id });
@@ -107,26 +151,29 @@ export default function CustomDrawer() {
           key={feed.id}
           name={feed.title}
           component={FeedFeed}
-          options={{ isVisible, feedType: 'feed' }} />);
+          options={{
+            isVisible, setIsVisible, feedType: 'feed', theme,
+          }} />);
       }
     });
   });
 
-  const UnreadFeed = () => Feed({ unread: true });
-
+  const UnreadFeed = () => Feed({ unread: true, theme });
   return (
   <Drawer.Navigator
     screenOptions={{
       headerStyle: {
-        backgroundColor: '#f4511e',
+        backgroundColor: theme.colors.primary,
+        borderBottomColor: theme.colors.primary,
       },
       drawerType: dimensions.width >= breakPointDesktop ? 'permanent' : 'front',
-      headerTintColor: '#fff',
+      headerTintColor: theme.colors.black,
       headerTitleStyle: {
         fontWeight: 'bold',
       },
       drawerStyle: {
-        backgroundColor: '#EEEEEE',
+        backgroundColor: theme.colors.background,
+        borderRightColor: theme.colors.primary,
       },
     }}
     initialRouteName="Home"
@@ -134,7 +181,7 @@ export default function CustomDrawer() {
     drawerContent={CustomDrawerItemList}
   >
     {screens}
-    <Drawer.Screen name="Unread" component={UnreadFeed} />
+    <Drawer.Screen name="Unread" component={UnreadFeed} options={{ feedType: 'unread', theme }}/>
   </Drawer.Navigator>
   );
 }
