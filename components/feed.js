@@ -1,11 +1,13 @@
 import 'react-native-gesture-handler';
 import {
-  StyleSheet, View, FlatList, Image, Platform, useWindowDimensions,
+  StyleSheet, View, FlatList, Platform, useWindowDimensions,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import React, { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
-import { Card, Text } from '@rneui/themed';
+import {
+  Card, Text, useTheme, Image,
+} from '@rneui/themed';
 
 import moment from 'moment';
 import feedsMock from '../mocks/feeds.json';
@@ -63,10 +65,11 @@ function unreadItems() {
   return itemsMock.items.filter((item) => item.unread).map((item) => mapItem(item, feedsMap));
 }
 
-function Feed({
-  folderId, feedId, unread, mocked = true,
-}) {
+function Feed(props) {
+  const mocked = true;
+  const { folderId, feedId, unread } = props.route.params;
   const [itemsData, setItemsData] = useState([]);
+  const { theme } = useTheme();
 
   const getData = async () => {
     try {
@@ -121,6 +124,7 @@ function Feed({
               }}>
                 <Text style={{
                   fontWeight: item.unread ? 'bold' : 'normal',
+                  color: item.unread ? theme.colors.black : theme.colors.grey3,
                 }}>
                   {item.title}
                 </Text>
@@ -137,7 +141,7 @@ function Feed({
                     />)}
                     </View> */}
                 <Text style={{
-                  // color: !item.unread && 'gray',
+                  color: item.unread ? theme.colors.black : theme.colors.grey3,
                   marginBottom: 5,
                   marginTop: 5,
                 }}>
@@ -161,11 +165,11 @@ function Feed({
                     />
                   )}
                   { item.feedTitle && (
-                    <Text>
+                    <Text style={{ color: theme.colors.grey4 }}>
                       &nbsp;{item.feedTitle}
                     </Text>
                   )}
-                  <Text>
+                  <Text style={{ color: theme.colors.grey4 }}>
                     &nbsp;·&nbsp;{ moment(item.pubDate * 1000).fromNow() }
                   </Text>
                 </Text>
@@ -189,10 +193,7 @@ function Feed({
 }
 
 Feed.propTypes = {
-  folderId: PropTypes.number,
-  feedId: PropTypes.number,
-  unread: PropTypes.bool,
-  mocked: PropTypes.bool,
+  route: PropTypes.object.isRequired,
 };
 
 export default Feed;

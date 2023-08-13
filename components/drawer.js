@@ -6,7 +6,9 @@ import {
   Linking, useWindowDimensions, View,
 } from 'react-native';
 import PropTypes from 'prop-types';
-import { Icon, useTheme, Text } from '@rneui/themed';
+import {
+  Icon, useTheme, Text, Image,
+} from '@rneui/themed';
 import Feed from './feed';
 
 import { breakPointDesktop } from '../constants';
@@ -47,14 +49,26 @@ FolderDrawerItem.propTypes = {
 };
 
 function FeedDrawerItem({ props, options, route }) {
+  const { feedId } = route.params;
+
   if (!options.isVisible) {
     return <View key={route.key}/>;
   }
+
+  const feedForId = feedsMock.feeds.find((feed) => feed.id === feedId);
   return (<DrawerItem
     key={route.key}
     label={route.name}
     labelStyle={{ fontSize: 10, color: options.theme.colors.black }}
-    icon={() => (<Icon name="rss-box" type="material-community" />)}
+    icon={() => {
+      if (feedForId?.faviconLink) {
+        return <Image
+          source={{ uri: feedForId.faviconLink }}
+          style={{ width: 24, height: 24 }}
+      />;
+      }
+      return <Icon name="rss-box" type="material-community" />;
+    }}
     focused={props.state.routes[props.state.index].key === route.key}
     onPress={() => {
       props.navigation.navigate(route.name);
@@ -136,21 +150,21 @@ export default function CustomDrawer() {
   const screens = [];
   folders.forEach((folder) => {
     const [isVisible, setIsVisible] = useState(false);
-    const FolderFeed = () => Feed({ folderId: folder.id });
     screens.push(<Drawer.Screen
       key={folder.id}
       name={folder.name}
-      component={FolderFeed}
+      component={Feed}
+      initialParams={{ folderId: folder.id }}
       options={{
         isVisible, setIsVisible, feedType: 'folder', theme,
       }}/>);
     feeds.forEach((feed) => {
       if (feed.folderId === folder.id) {
-        const FeedFeed = () => Feed({ feedId: feed.id });
         screens.push(<Drawer.Screen
           key={feed.id}
           name={feed.title}
-          component={FeedFeed}
+          component={Feed}
+          initialParams={{ feedId: feed.id }}
           options={{
             isVisible, setIsVisible, feedType: 'feed', theme,
           }} />);
@@ -181,7 +195,12 @@ export default function CustomDrawer() {
     drawerContent={CustomDrawerItemList}
   >
     {screens}
-    <Drawer.Screen name="Unread" component={UnreadFeed} options={{ feedType: 'unread', theme }}/>
+    <Drawer.Screen
+      name="Unread"
+      component={Feed}
+      initialParams={{ unread: true }}
+      options={{ feedType: 'unread', theme }}
+    />
   </Drawer.Navigator>
   );
 }
