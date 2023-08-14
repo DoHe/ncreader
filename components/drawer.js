@@ -8,37 +8,34 @@ import {
 } from 'react-native';
 import PropTypes from 'prop-types';
 import {
-  Icon, useTheme, Text, Image,
+  Icon, useTheme, Text, Image, ListItem,
 } from '@rneui/themed';
 import Feed from './feed';
 
 import { breakPointDesktop } from '../constants';
 
 function FolderDrawerItem({ props, options, route }) {
-  // const [icon, setIcon] = useState('caret-down');
-  const icon = 'caret-down';
-  const setIcon = () => {};
-  return (<Text
+  const { key, name } = route;
+  return (
+    <ListItem.Accordion
       key={route.key}
-      style={{
-        paddingLeft: 10,
-      }}
+      content={
+        <DrawerItem
+          label={name}
+          labelStyle={{ fontSize: 12, fontWeight: 'bold', color: theme.colors.black }}
+          focused={props.state.routes[props.state.index].key === key}
+          onPress={() => { props.navigation.navigate(name); }}
+        />
+      }
+      isExpanded={false}
+      onPress={() => { console.log('pressed'); }}
     >
-    <Icon
-      name={icon}
-      type='font-awesome'
-      onPress={() => {
-        options.setIsVisible(!options.isVisible);
-        setIcon(options.isVisible ? 'caret-down' : 'caret-up');
-      }}
-    />
-    <DrawerItem
-      label={route.name}
-      labelStyle={{ fontSize: 12, fontWeight: 'bold', color: options.theme.colors.black }}
-      focused={props.state.routes[props.state.index].key === route.key}
-      onPress={() => { props.navigation.navigate(route.name); }}
-    />
-  </Text>);
+      <ListItem bottomDivider>
+        <ListItem.Content>
+          <ListItem.Title>HI!</ListItem.Title>
+        </ListItem.Content>
+      </ListItem>
+    </ListItem.Accordion>);
 }
 
 FolderDrawerItem.propTypes = {
@@ -51,16 +48,18 @@ FolderDrawerItem.propTypes = {
 
 function FeedDrawerItem({ props, options, route }) {
   const { feedId } = route.params;
+  const { theme, feeds } = options;
+  const { key, name } = route;
 
-  if (!options.isVisible) {
-    return <View key={route.key}/>;
+  if (!false) {
+    return <View key={key}/>;
   }
 
-  const feedForId = options.feeds.find((feed) => feed.id === feedId);
+  const feedForId = feeds.find((feed) => feed.id === feedId);
   return (<DrawerItem
-    key={route.key}
-    label={route.name}
-    labelStyle={{ fontSize: 10, color: options.theme.colors.black }}
+    key={key}
+    label={name}
+    labelStyle={{ fontSize: 10, color: theme.colors.black }}
     icon={() => {
       if (feedForId?.faviconLink) {
         return <Image
@@ -70,9 +69,9 @@ function FeedDrawerItem({ props, options, route }) {
       }
       return <Icon name="rss-box" type="material-community" />;
     }}
-    focused={props.state.routes[props.state.index].key === route.key}
+    focused={props.state.routes[props.state.index].key === key}
     onPress={() => {
-      props.navigation.navigate(route.name);
+      props.navigation.navigate(name);
     }}
   />);
 }
@@ -140,6 +139,23 @@ function sortedAlphabetically(array, attribute) {
   return copy;
 }
 
+function shallowEqual(object1, object2) {
+  const keys1 = Object.keys(object1);
+  const keys2 = Object.keys(object2);
+
+  if (keys1.length !== keys2.length) {
+    return false;
+  }
+
+  for (const key of keys1) {
+    if (object1[key] !== object2[key]) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 const Drawer = createDrawerNavigator();
 
 export default function CustomDrawer() {
@@ -152,17 +168,12 @@ export default function CustomDrawer() {
 
   const screens = [];
   folders.forEach((folder) => {
-    // const [isVisible, setIsVisible] = useState(false);
-    const isVisible = true;
-    const setIsVisible = () => {};
     screens.push(<Drawer.Screen
       key={folder.id}
       name={folder.name}
       component={Feed}
       initialParams={{ folderId: folder.id }}
-      options={{
-        isVisible, setIsVisible, feedType: 'folder', theme, feeds,
-      }}/>);
+      options={{ feedType: 'folder', theme, feeds }}/>);
     feeds.forEach((feed) => {
       if (feed.folderId === folder.id) {
         screens.push(<Drawer.Screen
@@ -170,9 +181,7 @@ export default function CustomDrawer() {
           name={feed.title}
           component={Feed}
           initialParams={{ feedId: feed.id }}
-          options={{
-            isVisible, setIsVisible, feedType: 'feed', theme, feeds,
-          }} />);
+          options={{ feedType: 'feed', theme, feeds }} />);
       }
     });
   });
