@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useSelector } from 'react-redux';
 import {
   createDrawerNavigator, DrawerContentScrollView, DrawerItem,
 } from '@react-navigation/drawer';
@@ -12,11 +13,11 @@ import {
 import Feed from './feed';
 
 import { breakPointDesktop } from '../constants';
-import foldersMock from '../mocks/folders.json';
-import feedsMock from '../mocks/feeds.json';
 
 function FolderDrawerItem({ props, options, route }) {
-  const [icon, setIcon] = useState('caret-down');
+  // const [icon, setIcon] = useState('caret-down');
+  const icon = 'caret-down';
+  const setIcon = () => {};
   return (<Text
       key={route.key}
       style={{
@@ -55,7 +56,7 @@ function FeedDrawerItem({ props, options, route }) {
     return <View key={route.key}/>;
   }
 
-  const feedForId = feedsMock.feeds.find((feed) => feed.id === feedId);
+  const feedForId = options.feeds.find((feed) => feed.id === feedId);
   return (<DrawerItem
     key={route.key}
     label={route.name}
@@ -143,20 +144,24 @@ const Drawer = createDrawerNavigator();
 
 export default function CustomDrawer() {
   const dimensions = useWindowDimensions();
-  const folders = sortedAlphabetically(foldersMock.folders, 'name');
-  const feeds = sortedAlphabetically(feedsMock.feeds, 'name');
+  const storeFolders = useSelector((state) => state.news.folders);
+  const folders = sortedAlphabetically(storeFolders, 'name');
+  const storeFeeds = useSelector((state) => state.news.feeds);
+  const feeds = sortedAlphabetically(storeFeeds, 'name');
   const { theme } = useTheme();
 
   const screens = [];
   folders.forEach((folder) => {
-    const [isVisible, setIsVisible] = useState(false);
+    // const [isVisible, setIsVisible] = useState(false);
+    const isVisible = true;
+    const setIsVisible = () => {};
     screens.push(<Drawer.Screen
       key={folder.id}
       name={folder.name}
       component={Feed}
       initialParams={{ folderId: folder.id }}
       options={{
-        isVisible, setIsVisible, feedType: 'folder', theme,
+        isVisible, setIsVisible, feedType: 'folder', theme, feeds,
       }}/>);
     feeds.forEach((feed) => {
       if (feed.folderId === folder.id) {
@@ -166,13 +171,12 @@ export default function CustomDrawer() {
           component={Feed}
           initialParams={{ feedId: feed.id }}
           options={{
-            isVisible, setIsVisible, feedType: 'feed', theme,
+            isVisible, setIsVisible, feedType: 'feed', theme, feeds,
           }} />);
       }
     });
   });
 
-  const UnreadFeed = () => Feed({ unread: true, theme });
   return (
   <Drawer.Navigator
     screenOptions={{
@@ -199,7 +203,9 @@ export default function CustomDrawer() {
       name="Unread"
       component={Feed}
       initialParams={{ unread: true }}
-      options={{ feedType: 'unread', theme }}
+      options={{
+        feedType: 'unread', theme,
+      }}
     />
   </Drawer.Navigator>
   );

@@ -1,18 +1,12 @@
 import 'react-native-gesture-handler';
-import {
-  StyleSheet, View, FlatList, Platform, useWindowDimensions,
-} from 'react-native';
-import { WebView } from 'react-native-webview';
-import React, { useEffect, useState } from 'react';
+import { View, FlatList, useWindowDimensions } from 'react-native';
+import React from 'react';
 import PropTypes from 'prop-types';
 import {
   Card, Text, useTheme, Image,
 } from '@rneui/themed';
-
 import moment from 'moment';
-import feedsMock from '../mocks/feeds.json';
-import foldersMock from '../mocks/folders.json';
-import itemsMock from '../mocks/items.json';
+import { useSelector } from 'react-redux';
 import { breakPointDesktop } from '../constants';
 import StyledView from './styledView';
 
@@ -36,66 +30,49 @@ function mapItem(item, feedsMap) {
   };
 }
 
-function itemsForFolder(folderId) {
-  const feedsInFolder = feedsMock.feeds.filter(
+function itemsForFolder(folderId, feeds, items) {
+  const feedsInFolder = feeds.filter(
     (feed) => feed.folderId === folderId,
   );
   const feedsMap = Object.fromEntries(feedsInFolder.map((feed) => [feed.id, feed]));
   const feedIds = Object.keys(feedsMap);
-  return itemsMock.items.filter(
+  return items.filter(
     (item) => feedIds.includes(`${item.feedId}`),
   ).map(
     (item) => (mapItem(item, feedsMap)),
   );
 }
 
-function itemsForFeed(feedId) {
-  const feedForId = feedsMock.feeds.find((feed) => feed.id === feedId);
+function itemsForFeed(feedId, feeds, items) {
+  const feedForId = feeds.find((feed) => feed.id === feedId);
   const feedsMap = {};
   feedsMap[feedId] = feedForId;
-  return itemsMock.items.filter(
+  return items.filter(
     (item) => feedId === item.feedId,
   ).map(
     (item) => (mapItem(item, feedsMap)),
   );
 }
 
-function unreadItems() {
-  const feedsMap = Object.fromEntries(feedsMock.feeds.map((feed) => [feed.id, feed]));
-  return itemsMock.items.filter((item) => item.unread).map((item) => mapItem(item, feedsMap));
+function unreadItems(feeds, items) {
+  const feedsMap = Object.fromEntries(feeds.map((feed) => [feed.id, feed]));
+  return items.filter((item) => item.unread).map((item) => mapItem(item, feedsMap));
 }
 
 function Feed(props) {
-  const mocked = true;
   const { folderId, feedId, unread } = props.route.params;
-  const [itemsData, setItemsData] = useState([]);
   const { theme } = useTheme();
+  const feeds = useSelector((state) => state.news.feeds);
+  const items = useSelector((state) => state.news.items);
 
-  const getData = async () => {
-    try {
-      if (mocked) {
-        let items = [];
-        if (folderId) {
-          items = itemsForFolder(folderId);
-        } else if (feedId) {
-          items = itemsForFeed(feedId);
-        } else if (unread) {
-          items = unreadItems();
-        }
-        setItemsData(items);
-      } else {
-        const response = await fetch('https://reactnative.dev/movies.json');
-        const json = await response.json();
-        setItemsData(json.movies);
-      }
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-  useEffect(() => {
-    getData();
-  }, []);
+  let selectedItems = [];
+  if (folderId) {
+    selectedItems = itemsForFolder(folderId, feeds, items);
+  } else if (feedId) {
+    selectedItems = itemsForFeed(feedId, feeds, items);
+  } else if (unread) {
+    selectedItems = unreadItems(feeds, items);
+  }
 
   const dimensions = useWindowDimensions();
   const bodyPreviewSize = dimensions.width >= breakPointDesktop ? 400 : 100;
@@ -108,7 +85,7 @@ function Feed(props) {
     }}>
       <FlatList
         style={{ marginLeft: 5, marginRight: 5, width: '100%' }}
-        data={itemsData}
+        data={selectedItems}
         keyExtractor={({ id }) => id}
         renderItem={({ item }) => (
           <Card style={{ marginTop: 20 }}>
