@@ -1,18 +1,23 @@
 import 'react-native-gesture-handler';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import {
   darkColors, lightColors, createTheme, ThemeProvider,
 } from '@rneui/themed';
-import { Platform, useColorScheme } from 'react-native';
-import { Provider, useDispatch } from 'react-redux';
-import CustomDrawer from './components/drawer';
+import {
+  Platform, Text, View, useColorScheme,
+} from 'react-native';
+import { Provider as ReduxProvider, useDispatch, useSelector } from 'react-redux';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import CustomDrawer from './components/nav-drawer';
 import { store } from './store';
 import { setItems, setFeeds, setFolders } from './slices/newsSlice';
 
 import items from './mocks/items.json';
 import folders from './mocks/folders.json';
 import feeds from './mocks/feeds.json';
+import ADrawer from './components/drawer';
+import Feed from './components/feed';
 
 const theme = createTheme({
   lightColors: {
@@ -54,10 +59,34 @@ const App = () => {
   );
 };
 
+const App2 = () => {
+  const dispatch = useDispatch();
+
+  const getData = async () => {
+    dispatch(setItems(items.items));
+    dispatch(setFolders(folders.folders));
+    dispatch(setFeeds(feeds.feeds));
+  };
+
+  useEffect(() => {
+    getData();
+  }, []);
+
+  theme.mode = useColorScheme();
+  const content = <Feed/>;
+  return (
+    <SafeAreaProvider>
+      <ThemeProvider theme={theme}>
+        <ADrawer content={content}></ADrawer>
+      </ThemeProvider>
+    </SafeAreaProvider>
+  );
+};
+
 export default function AppWrapper() {
   return (
-    <Provider store={store}>
-      <App />
-    </Provider>
+    <ReduxProvider store={store}>
+      <App2 />
+    </ReduxProvider>
   );
 }
