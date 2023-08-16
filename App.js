@@ -1,17 +1,17 @@
 import 'react-native-gesture-handler';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import {
   darkColors, lightColors, createTheme, ThemeProvider,
 } from '@rneui/themed';
 import {
-  Platform, Text, View, useColorScheme,
+  Platform, useColorScheme,
 } from 'react-native';
-import { Provider as ReduxProvider, useDispatch, useSelector } from 'react-redux';
+import { Provider as ReduxProvider, useDispatch } from 'react-redux';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import CustomDrawer from './components/nav-drawer';
 import { store } from './store';
-import { setItems, setFeeds, setFolders } from './slices/newsSlice';
+import { setAllItems, setFeeds, setFolders } from './slices/newsSlice';
 
 import items from './mocks/items.json';
 import folders from './mocks/folders.json';
@@ -40,7 +40,7 @@ const App = () => {
   const dispatch = useDispatch();
 
   const getData = async () => {
-    dispatch(setItems(items.items));
+    dispatch(setAllItems(items.items));
     dispatch(setFolders(folders.folders));
     dispatch(setFeeds(feeds.feeds));
   };
@@ -63,7 +63,7 @@ const App2 = () => {
   const dispatch = useDispatch();
 
   const getData = async () => {
-    dispatch(setItems(items.items));
+    dispatch(setAllItems(items.items));
     dispatch(setFolders(folders.folders));
     dispatch(setFeeds(feeds.feeds));
   };

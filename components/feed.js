@@ -33,7 +33,11 @@ export default function Feed() {
   const { theme } = useTheme();
   const feeds = useSelector((state) => state.news.feeds);
   const feedsMap = Object.fromEntries(feeds.map((feed) => [feed.id, feed]));
-  const items = useSelector((state) => state.news.items).map((item) => mapItem(item, feedsMap));
+  const items = useSelector(
+    (state) => state.news.selectedItems,
+  ).map(
+    (item) => mapItem(item, feedsMap),
+  );
 
   const dimensions = useWindowDimensions();
   const bodyPreviewSize = dimensions.width >= breakPointDesktop ? 400 : 100;
