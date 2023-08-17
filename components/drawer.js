@@ -9,17 +9,32 @@ import PropTypes from 'prop-types';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import StyledView from './styledView';
 import {
-  setSelectedByFeedId, setSelectedByFolderId, setSelectedByUnread, unsetSelected,
+  setSelectedByFeedId, setSelectedByFolderId, setSelectedByUnread, setSelectedByStarred,
 } from '../slices/newsSlice';
 
-function FolderAccordion({ id, name, children }) {
+function selectedStyle(theme) {
+  return {
+    backgroundColor: `${theme.colors.primary}50`,
+  };
+}
+
+function FolderAccordion({
+  id, name, children, setOpen,
+}) {
   const [expanded, setExpanded] = React.useState(false);
+  const { theme } = useTheme();
   const dispatch = useDispatch();
+  const isSelected = useSelector(
+    (state) => state.news.selectionType === 'folder' && state.news.selectionId === id,
+  );
 
   return (<ListItem.Accordion
       content={
         <Text
-          onPress={() => { dispatch(setSelectedByFolderId(id)); }}
+          onPress={() => {
+            dispatch(setSelectedByFolderId(id));
+            setOpen(false);
+          }}
           style={{
             display: 'flex',
             flex: 1,
@@ -37,6 +52,8 @@ function FolderAccordion({ id, name, children }) {
       }
       isExpanded={expanded}
       onPress={() => { setExpanded(!expanded); }}
+      containerStyle={isSelected ? selectedStyle(theme) : {}}
+
     >
       {children}
     </ListItem.Accordion>);
@@ -46,17 +63,26 @@ FolderAccordion.propTypes = {
   name: PropTypes.string.isRequired,
   id: PropTypes.number.isRequired,
   children: PropTypes.array.isRequired,
+  setOpen: PropTypes.func.isRequired,
 };
 
-function FeedItem({ id, name, faviconLink }) {
+function FeedItem({
+  id, name, faviconLink, setOpen,
+}) {
   const dispatch = useDispatch();
+  const { theme } = useTheme();
+  const isSelected = useSelector(
+    (state) => state.news.selectionType === 'feed' && state.news.selectionId === id,
+  );
 
   return (
     <ListItem
       style={{ marginLeft: 10 }}
       onPress={() => {
         dispatch(setSelectedByFeedId(id));
+        setOpen(false);
       }}
+      containerStyle={isSelected ? selectedStyle(theme) : {}}
     >
       <Image
           source={{ uri: faviconLink }}
@@ -73,47 +99,46 @@ FeedItem.propTypes = {
   name: PropTypes.string.isRequired,
   id: PropTypes.number.isRequired,
   faviconLink: PropTypes.string,
+  setOpen: PropTypes.func.isRequired,
 };
 
-function AllItem() {
+function CustomItem({
+  title, iconName, iconType, selectionFunc, selectionType, setOpen,
+}) {
   const dispatch = useDispatch();
+  const { theme } = useTheme();
+  const isSelected = useSelector(
+    (state) => state.news.selectionType === selectionType,
+  );
 
   return (
     <ListItem
       onPress={() => {
-        dispatch(unsetSelected());
+        dispatch(selectionFunc());
+        setOpen(false);
       }}
+      containerStyle={isSelected ? selectedStyle(theme) : {}}
     >
       <Icon
-        name="folder"
+        name={iconName}
+        type={iconType}
         size={20}
       />
       <ListItem.Content>
-        <ListItem.Title>All</ListItem.Title>
+        <ListItem.Title>{title}</ListItem.Title>
       </ListItem.Content>
     </ListItem>
   );
 }
 
-function UnreadItem() {
-  const dispatch = useDispatch();
-
-  return (
-    <ListItem
-      onPress={() => {
-        dispatch(setSelectedByUnread());
-      }}
-    >
-      <Icon
-        name="folder"
-        size={20}
-      />
-      <ListItem.Content>
-        <ListItem.Title>Unread</ListItem.Title>
-      </ListItem.Content>
-    </ListItem>
-  );
-}
+CustomItem.propTypes = {
+  title: PropTypes.string.isRequired,
+  iconName: PropTypes.string.isRequired,
+  iconType: PropTypes.string.isRequired,
+  selectionFunc: PropTypes.func.isRequired,
+  selectionType: PropTypes.string.isRequired,
+  setOpen: PropTypes.func.isRequired,
+};
 
 export default function ADrawer({ content }) {
   const [open, setOpen] = React.useState(true);
@@ -128,12 +153,14 @@ export default function ADrawer({ content }) {
         id={feed.id}
         name={feed.title}
         faviconLink={feed.faviconLink}
+        setOpen={setOpen}
       />
     ));
     return (<FolderAccordion
       key={folder.id}
       id={folder.id}
       name={folder.name}
+      setOpen={setOpen}
     >
       {feedItems}
     </FolderAccordion>);
@@ -151,8 +178,22 @@ export default function ADrawer({ content }) {
         renderDrawerContent={() => (
           <SafeAreaView style={{ flex: 1 }}>
             <StyledView style={{ flex: 1 }}>
-              <AllItem/>
-              <UnreadItem/>
+              <CustomItem
+                title='Starred'
+                iconName='star'
+                iconType='ant-design'
+                selectionFunc={setSelectedByStarred}
+                selectionType='starred'
+                setOpen={setOpen}
+              />
+              <CustomItem
+                title='Unread'
+                iconName='eyeo'
+                iconType='ant-design'
+                selectionFunc={setSelectedByUnread}
+                selectionType='unread'
+                setOpen={setOpen}
+              />
               {accordions}
             </StyledView>
           </SafeAreaView>
@@ -162,12 +203,13 @@ export default function ADrawer({ content }) {
           leftComponent={
             <Icon
               name='menu'
+              size={30}
               onPress={() => setOpen((prevOpen) => !prevOpen)}
             />
           }
           backgroundColor={theme.colors.primary}
           centerComponent={
-            <Text>News</Text>
+            <Text style={{ fontSize: 20, fontWeight: 'bold' }}>News</Text>
           }
         />
         {content}

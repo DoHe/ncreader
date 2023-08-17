@@ -6,6 +6,8 @@ const initialState = {
   feeds: [],
   folders: [],
   selectedItems: [],
+  selectionType: '',
+  selectionId: -1,
 };
 
 export const newsSlice = createSlice({
@@ -24,6 +26,8 @@ export const newsSlice = createSlice({
     },
     setSelectedByFeedId: (state, action) => {
       state.selectedItems = state.allItems.filter((item) => (item.feedId === action.payload));
+      state.selectionId = action.payload;
+      state.selectionType = 'feed';
     },
     setSelectedByFolderId: (state, action) => {
       const feedIds = state.feeds.filter(
@@ -34,14 +38,22 @@ export const newsSlice = createSlice({
       state.selectedItems = state.allItems.filter(
         (item) => feedIds.includes(item.feedId),
       );
+      state.selectionId = action.payload;
+      state.selectionType = 'folder';
     },
     setSelectedByUnread: (state) => {
       state.selectedItems = state.allItems.filter(
         (item) => (item.unread),
       );
+      state.selectionId = undefined;
+      state.selectionType = 'unread';
     },
-    unsetSelected: (state) => {
-      state.selectedItems = state.allItems;
+    setSelectedByStarred: (state) => {
+      state.selectedItems = state.allItems.filter(
+        (item) => (item.starred),
+      );
+      state.selectionId = undefined;
+      state.selectionType = 'starred';
     },
   },
 });
@@ -53,7 +65,7 @@ export const {
   setSelectedByFeedId,
   setSelectedByFolderId,
   setSelectedByUnread,
-  unsetSelected,
+  setSelectedByStarred,
 } = newsSlice.actions;
 
 export default newsSlice.reducer;
