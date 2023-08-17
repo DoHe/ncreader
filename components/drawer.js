@@ -201,11 +201,11 @@ export default function ADrawer({ content }) {
       >
         <Header
           leftComponent={
-            <Icon
+            (Platform.OS !== 'web') ? (<Icon
               name='menu'
               size={30}
               onPress={() => setOpen((prevOpen) => !prevOpen)}
-            />
+            />) : <></>
           }
           backgroundColor={theme.colors.primary}
           centerComponent={
