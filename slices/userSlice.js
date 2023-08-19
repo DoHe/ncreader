@@ -5,6 +5,7 @@ const initialState = {
   credentials: {
     password: '',
     username: '',
+    url: '',
   },
 };
 

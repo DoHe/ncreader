@@ -140,13 +140,11 @@ CustomItem.propTypes = {
   setOpen: PropTypes.func.isRequired,
 };
 
-export default function ADrawer({ content }) {
+export default function ADrawer({ content, folders, feeds }) {
   const [open, setOpen] = React.useState(true);
   const { theme } = useTheme();
 
-  const folders = useSelector((state) => state.news.folders);
   const accordions = folders.map((folder) => {
-    const feeds = useSelector((state) => state.news.feeds);
     const feedItems = feeds.filter((feed) => feed.folderId === folder.id).map((feed) => (
       <FeedItem
         key={feed.id}

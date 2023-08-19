@@ -1,9 +1,14 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { Button, Input, Text } from '@rneui/themed';
-import { View } from 'react-native';
+import { Platform, View } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import { setCredentials } from '../slices/userSlice';
 import StyledView from './styledView';
+import { credentialsKey } from '../constants';
+
+const secureSetItem = Platform.OS === 'web' ? AsyncStorage.setItem : SecureStore.setItemAsync;
 
 function Login() {
   const dispatch = useDispatch();
@@ -11,9 +16,6 @@ function Login() {
   const [password, onChangePassword] = useState('');
   const [url, onChangeUrl] = useState('');
 
-  useEffect(() => {
-    // dispatch(setCredentials({ username: 'hi', password: 'secret' }));
-  }, []);
   return (
     <StyledView style={{
       flex: 1,
@@ -41,7 +43,11 @@ function Login() {
       </View>
       <Button
         title='Login'
-        onPress={() => { console.log({ username, url, password }); }}
+        onPress={() => {
+          const credentials = { username, url, password };
+          secureSetItem(credentialsKey, JSON.stringify(credentials));
+          dispatch(setCredentials(credentials));
+        }}
       />
     </StyledView>
   );

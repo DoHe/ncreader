@@ -23,8 +23,8 @@ const imageFromBody = (body) => {
 function mapItem(item, feedsMap) {
   return {
     ...item,
-    feedFavicon: feedsMap[`${item.feedId}`].faviconLink,
-    feedTitle: feedsMap[`${item.feedId}`].title,
+    feedFavicon: feedsMap[`${item.feedId}`]?.faviconLink,
+    feedTitle: feedsMap[`${item.feedId}`]?.title,
     previewImageURL: item.enclosureLink || imageFromBody(item.body),
   };
 }
@@ -120,22 +120,17 @@ FeedItem.propTypes = {
   bodyPreviewSize: PropTypes.number.isRequired,
 };
 
-export default function Feed() {
+export default function Feed({ items, feeds }) {
   const { theme } = useTheme();
-  const feeds = useSelector((state) => state.news.feeds);
   const feedsMap = Object.fromEntries(feeds.map((feed) => [feed.id, feed]));
-  const items = useSelector(
-    (state) => state.news.selectedItems,
-  ).map(
-    (item) => mapItem(item, feedsMap),
-  );
+  const mappedItems = items.map((item) => mapItem(item, feedsMap));
 
   const dimensions = useWindowDimensions();
   const bodyPreviewSize = dimensions.width >= breakPointDesktop ? 400 : 100;
 
   return <FlatList
         style={{ marginLeft: 5, marginRight: 5, width: '100%' }}
-        data={items}
+        data={mappedItems}
         keyExtractor={({ id }) => id}
         renderItem={({ item }) => (
           <FeedItem
