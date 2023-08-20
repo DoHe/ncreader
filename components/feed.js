@@ -1,4 +1,4 @@
-import 'react-native-gesture-handler';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { View, FlatList, useWindowDimensions } from 'react-native';
 import React from 'react';
 import PropTypes from 'prop-types';
@@ -28,106 +28,136 @@ function mapItem(item, feedsMap) {
   };
 }
 
+function starItem(item) {
+  'worklet';
+
+  console.log(`Should star: ${item.id}`);
+}
+
+function shareItem(item) {
+  'worklet';
+
+  console.log(`Should share: ${item.id}`);
+}
+
 function FeedItem({ item, theme, bodyPreviewSize }) {
+  const doubleTap = Gesture.Tap().numberOfTaps(2).onStart(() => {
+    starItem(item);
+  });
+
+  const longPress = Gesture.LongPress().onStart(() => {
+    shareItem(item);
+  });
+
+  const doubleTapOrLongPress = Gesture.Exclusive(doubleTap, longPress);
+
   return (
     <ListItem.Swipeable
       bottomDivider={true}
       leftContent={(reset) => (
         <Button
-          onPress={() => reset()}
+          onPress={() => {
+            shareItem(item);
+            reset();
+          }}
           icon={{ name: 'open-in-browser', type: 'material-icons', color: theme.colors.white }}
           buttonStyle={{ minHeight: '100%' }}
         />
       )}
       rightContent={(reset) => (
         <Button
-          onPress={() => reset()}
+          onPress={() => {
+            starItem(item);
+            reset();
+          }}
           icon={{ name: 'star', type: 'ant-design', color: theme.colors.black }}
           buttonStyle={{ minHeight: '100%', backgroundColor: theme.colors.warning }}
         />
       )}
     >
-      <ListItem.Content>
-        <View style={{
-          display: 'flex',
-          width: '100%',
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          gap: 10,
-        }}>
+      <GestureDetector gesture={doubleTapOrLongPress}>
+        <ListItem.Content>
           <View style={{
             display: 'flex',
-            flexShrink: 10,
+            width: '100%',
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            gap: 10,
           }}>
-            <Text style={{
-              fontWeight: item.unread ? 'bold' : 'normal',
-              color: item.unread ? theme.colors.black : theme.colors.grey3,
+            <View style={{
+              display: 'flex',
+              flexShrink: 10,
             }}>
-              {item.title}
-            </Text>
-            <Text style={{
-              color: item.unread ? theme.colors.black : theme.colors.grey3,
-              marginBottom: 5,
-              marginTop: 5,
-            }}>
-              { `${item.body.replace(htmlTagsRegex, '').trim().slice(0, bodyPreviewSize)}...` }
-            </Text>
-            <Text
+              <Text style={{
+                fontWeight: item.unread ? 'bold' : 'normal',
+                color: item.unread ? theme.colors.black : theme.colors.grey3,
+              }}>
+                {item.title}
+              </Text>
+              <Text style={{
+                color: item.unread ? theme.colors.black : theme.colors.grey3,
+                marginBottom: 5,
+                marginTop: 5,
+              }}>
+                { `${item.body.replace(htmlTagsRegex, '').trim().slice(0, bodyPreviewSize)}...` }
+              </Text>
+              <Text
+                style={{
+                  display: 'flex',
+                  fontStyle: 'italic',
+                  alignItems: 'center',
+                  marginTop: 'auto',
+                }}
+              >
+                { item.feedFavicon && (
+                  <Image
+                    source={{ uri: item.feedFavicon }}
+                    style={{
+                      width: 16,
+                      height: 16,
+                    }}
+                  />
+                )}
+                { item.feedTitle && (
+                  <Text style={{ color: theme.colors.grey4 }}>
+                    &nbsp;{item.feedTitle}
+                  </Text>
+                )}
+                <Text style={{ color: theme.colors.grey4 }}>
+                  &nbsp;·&nbsp;{ moment(item.pubDate * 1000).fromNow() }
+                </Text>
+              </Text>
+            </View>
+            <View
               style={{
                 display: 'flex',
-                fontStyle: 'italic',
-                alignItems: 'center',
-                marginTop: 'auto',
+                justifyContent: 'space-between',
+                alignItems: 'flex-end',
               }}
             >
-              { item.feedFavicon && (
+              { item.previewImageURL && (
                 <Image
-                  source={{ uri: item.feedFavicon }}
+                  source={{ uri: item.previewImageURL }}
                   style={{
-                    width: 16,
-                    height: 16,
+                    width: 80,
+                    height: 80,
+                    borderRadius: 20,
+                    marginBottom: 10,
                   }}
                 />
               )}
-              { item.feedTitle && (
-                <Text style={{ color: theme.colors.grey4 }}>
-                  &nbsp;{item.feedTitle}
-                </Text>
+              { item.starred && (
+                    <Icon
+                      name='star'
+                      type='ant-design'
+                      color={theme.colors.warning}
+                      size={16}
+                    />
               )}
-              <Text style={{ color: theme.colors.grey4 }}>
-                &nbsp;·&nbsp;{ moment(item.pubDate * 1000).fromNow() }
-              </Text>
-            </Text>
+            </View>
           </View>
-          <View
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'flex-end',
-            }}
-          >
-            { item.previewImageURL && (
-              <Image
-                source={{ uri: item.previewImageURL }}
-                style={{
-                  width: 80,
-                  height: 80,
-                  borderRadius: 20,
-                  marginBottom: 10,
-                }}
-              />
-            )}
-            { item.starred && (
-                  <Icon
-                    name='star'
-                    type='ant-design'
-                    color={theme.colors.warning}
-                    size={16}
-                  />
-            )}
-          </View>
-        </View>
-      </ListItem.Content>
+        </ListItem.Content>
+      </GestureDetector>
     </ListItem.Swipeable>
   );
 }

@@ -2,8 +2,8 @@ import { useDispatch, useSelector } from 'react-redux';
 import {
   Header, Icon, ListItem, Text, useTheme, Image,
 } from '@rneui/themed';
-import * as React from 'react';
-import { Platform } from 'react-native';
+import React, { useRef } from 'react';
+import { Animated, Easing, Platform } from 'react-native';
 import { Drawer } from 'react-native-drawer-layout';
 import PropTypes from 'prop-types';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -140,12 +140,83 @@ CustomItem.propTypes = {
   setOpen: PropTypes.func.isRequired,
 };
 
-export default function ADrawer({ content, folders, feeds }) {
+function SyncItem({ theme }) {
+  const rotateAnimation = useRef(new Animated.Value(0)).current;
+  const rotation = Animated.loop(
+    Animated.timing(rotateAnimation, {
+      toValue: 1,
+      duration: 1000,
+      easing: Easing.linear,
+      useNativeDriver: Platform.OS !== 'web',
+    }),
+  );
+
+  let rotating = false;
+  const rotate = () => {
+    if (rotating) {
+      rotation.stop();
+      rotating = false;
+    } else {
+      rotation.reset();
+      rotation.start();
+      rotating = true;
+    }
+  };
+
+  const spin = rotateAnimation.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
+
+  return (
+    <ListItem
+      containerStyle={{
+        backgroundColor: theme.colors.primary,
+      }}
+      onPress={() => rotate()}
+    >
+      <Animated.View style={{ transform: [{ rotate: spin }] }}>
+        <Icon
+          name="sync"
+          size={24}
+        />
+      </Animated.View>
+      <ListItem.Content>
+        <ListItem.Title style={{
+          fontWeight: 'bold',
+          fontSize: 24,
+        }}
+        >
+          News
+        </ListItem.Title>
+      </ListItem.Content>
+    </ListItem>
+  );
+}
+
+SyncItem.propTypes = {
+  theme: PropTypes.object.isRequired,
+};
+
+const feedHasUnreadItems = (feedId, items) => {
+  for (const item of items) {
+    if (item.unread && item.feedId === feedId) {
+      return true;
+    }
+  }
+  return false;
+};
+
+export default function ADrawer({
+  content, folders, feeds, items,
+}) {
   const [open, setOpen] = React.useState(true);
   const { theme } = useTheme();
 
   const accordions = folders.map((folder) => {
-    const feedItems = feeds.filter((feed) => feed.folderId === folder.id).map((feed) => (
+    const feedItems = feeds.filter(
+      (feed) => (feed.folderId === folder.id) && feedHasUnreadItems(feed.id, items),
+    ).map((feed) => (
       <FeedItem
         key={feed.id}
         id={feed.id}
@@ -154,7 +225,7 @@ export default function ADrawer({ content, folders, feeds }) {
         setOpen={setOpen}
       />
     ));
-    return (<FolderAccordion
+    return feedItems.length && (<FolderAccordion
       key={folder.id}
       id={folder.id}
       name={folder.name}
@@ -162,7 +233,7 @@ export default function ADrawer({ content, folders, feeds }) {
     >
       {feedItems}
     </FolderAccordion>);
-  });
+  }).filter((component) => component);
 
   return (
     <StyledView style={{
@@ -176,6 +247,7 @@ export default function ADrawer({ content, folders, feeds }) {
         renderDrawerContent={() => (
           <SafeAreaView style={{ flex: 1 }}>
             <StyledView style={{ flex: 1 }}>
+              <SyncItem theme={theme}/>
               <CustomItem
                 title='Starred'
                 iconName='star'
@@ -218,4 +290,7 @@ export default function ADrawer({ content, folders, feeds }) {
 
 ADrawer.propTypes = {
   content: PropTypes.object.isRequired,
+  folders: PropTypes.array.isRequired,
+  feeds: PropTypes.array.isRequired,
+  items: PropTypes.array.isRequired,
 };

@@ -21,7 +21,7 @@ import feedsMock from './mocks/feeds.json';
 import ADrawer from './components/drawer';
 import Feed from './components/feed';
 import Login from './components/login';
-import initialSync from './data/news';
+import { initialSync, subsequentSync } from './data/news';
 import {
   credentialsKey, syncDataKey, syncStatusKey, syncStatusSynced,
 } from './constants';
@@ -48,6 +48,22 @@ const theme = createTheme({
   },
 });
 
+function alphabetical(a, b) {
+  if (a < b) {
+    return -1;
+  }
+  if (a > b) {
+    return 1;
+  }
+  return 0;
+}
+
+function sortData({ folders, feeds, items }) {
+  items.items.sort((left, right) => right.pubDate - left.pubDate);
+  feeds.feeds.sort((left, right) => alphabetical(left.title, right.title));
+  folders.folders.sort((left, right) => alphabetical(left.name, right.name));
+}
+
 function dispatchData(dispatch, { folders, feeds, items }) {
   dispatch(setAllItems(items.items));
   dispatch(setFolders(folders.folders));
@@ -61,7 +77,8 @@ function App() {
 
   const feeds = useSelector((state) => state.news.feeds);
   const folders = useSelector((state) => state.news.folders);
-  const items = useSelector((state) => state.news.selectedItems);
+  const selectedItems = useSelector((state) => state.news.selectedItems);
+  const allItems = useSelector((state) => state.news.allItems);
 
   const credentials = useSelector((state) => state.user.credentials);
   const haveCredentials = !!(
@@ -94,11 +111,13 @@ function App() {
 
   const getData = async () => {
     if (mocked) {
-      dispatchData(dispatch, {
+      const data = {
         folders: foldersMock,
         feeds: feedsMock,
         items: itemsMock,
-      });
+      };
+      sortData(data);
+      dispatchData(dispatch, data);
       return;
     }
 
@@ -112,11 +131,35 @@ function App() {
       data = JSON.parse(await AsyncStorage.getItem(syncDataKey));
 
       dispatchData(dispatch, data);
+
+      let lastModified = 0;
+      data.items.items.forEach((item) => {
+        if (item.lastModified > lastModified) {
+          lastModified = item.lastModified;
+        }
+      });
+      const newData = await subsequentSync(credentials, lastModified);
+      for (const oldItem of data.items.items) {
+        let isUpdated = false;
+        for (const newItem of newData.items.items) {
+          if (oldItem.id === newItem.id) {
+            isUpdated = true;
+            break;
+          }
+        }
+        if (!isUpdated) {
+          newData.items.items.push(oldItem);
+        }
+      }
+      sortData(newData);
+      AsyncStorage.setItem(syncDataKey, JSON.stringify(newData));
+      dispatchData(dispatch, newData);
     } else {
       data = await initialSync(credentials);
       if (!(data?.folders?.folders?.length > 0)) {
         return;
       }
+      sortData(data);
       AsyncStorage.setItem(syncDataKey, JSON.stringify(data));
       AsyncStorage.setItem(syncStatusKey, syncStatusSynced);
 
@@ -135,11 +178,12 @@ function App() {
         { haveCredentials
           ? (<ADrawer
             content={<Feed
-              items={items}
+              items={selectedItems}
               feeds={feeds}
             />}
             folders={folders}
             feeds={feeds}
+            items={allItems}
           />)
           : (<Login/>)
         }
