@@ -1,202 +1,19 @@
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
 import {
-  Header, Icon, ListItem, Text, useTheme, Image,
+  Header, Icon, Text, useTheme,
 } from '@rneui/themed';
-import React, { useRef } from 'react';
-import { Animated, Easing, Platform } from 'react-native';
+import React from 'react';
+import { Platform } from 'react-native';
 import { Drawer } from 'react-native-drawer-layout';
 import PropTypes from 'prop-types';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import StyledView from './styledView';
-import {
-  setSelectedByFeedId, setSelectedByFolderId, setSelectedByUnread, setSelectedByStarred,
-} from '../slices/newsSlice';
+import { setSelectedByUnread, setSelectedByStarred } from '../slices/newsSlice';
 
-function selectedStyle(theme) {
-  return {
-    backgroundColor: `${theme.colors.primary}50`,
-  };
-}
-
-function FolderAccordion({
-  id, name, children, setOpen,
-}) {
-  const [expanded, setExpanded] = React.useState(false);
-  const { theme } = useTheme();
-  const dispatch = useDispatch();
-  const isSelected = useSelector(
-    (state) => state.news.selectionType === 'folder' && state.news.selectionId === id,
-  );
-
-  return (<ListItem.Accordion
-      content={
-        <Text
-          onPress={() => {
-            dispatch(setSelectedByFolderId(id));
-            setOpen(false);
-          }}
-          style={{
-            display: 'flex',
-            flex: 1,
-          }}
-        >
-          <Icon
-            name="folder"
-            size={20}
-            style={{ marginRight: 16 }}
-          />
-          <ListItem.Content>
-            <ListItem.Title>{name}</ListItem.Title>
-          </ListItem.Content>
-        </Text>
-      }
-      isExpanded={expanded}
-      onPress={() => { setExpanded(!expanded); }}
-      containerStyle={isSelected ? selectedStyle(theme) : {}}
-
-    >
-      {children}
-    </ListItem.Accordion>);
-}
-
-FolderAccordion.propTypes = {
-  name: PropTypes.string.isRequired,
-  id: PropTypes.number.isRequired,
-  children: PropTypes.array.isRequired,
-  setOpen: PropTypes.func.isRequired,
-};
-
-function FeedItem({
-  id, name, faviconLink, setOpen,
-}) {
-  const dispatch = useDispatch();
-  const { theme } = useTheme();
-  const isSelected = useSelector(
-    (state) => state.news.selectionType === 'feed' && state.news.selectionId === id,
-  );
-
-  return (
-    <ListItem
-      style={{ marginLeft: 10 }}
-      onPress={() => {
-        dispatch(setSelectedByFeedId(id));
-        setOpen(false);
-      }}
-      containerStyle={isSelected ? selectedStyle(theme) : {}}
-    >
-      <Image
-          source={{ uri: faviconLink }}
-          style={{ width: 20, height: 20 }}
-      />
-      <ListItem.Content>
-        <ListItem.Title>{name}</ListItem.Title>
-      </ListItem.Content>
-    </ListItem>
-  );
-}
-
-FeedItem.propTypes = {
-  name: PropTypes.string.isRequired,
-  id: PropTypes.number.isRequired,
-  faviconLink: PropTypes.string,
-  setOpen: PropTypes.func.isRequired,
-};
-
-function CustomItem({
-  title, iconName, iconType, selectionFunc, selectionType, setOpen,
-}) {
-  const dispatch = useDispatch();
-  const { theme } = useTheme();
-  const isSelected = useSelector(
-    (state) => state.news.selectionType === selectionType,
-  );
-
-  return (
-    <ListItem
-      onPress={() => {
-        dispatch(selectionFunc());
-        setOpen(false);
-      }}
-      containerStyle={isSelected ? selectedStyle(theme) : {}}
-    >
-      <Icon
-        name={iconName}
-        type={iconType}
-        size={20}
-      />
-      <ListItem.Content>
-        <ListItem.Title>{title}</ListItem.Title>
-      </ListItem.Content>
-    </ListItem>
-  );
-}
-
-CustomItem.propTypes = {
-  title: PropTypes.string.isRequired,
-  iconName: PropTypes.string.isRequired,
-  iconType: PropTypes.string.isRequired,
-  selectionFunc: PropTypes.func.isRequired,
-  selectionType: PropTypes.string.isRequired,
-  setOpen: PropTypes.func.isRequired,
-};
-
-function SyncItem({ theme }) {
-  const rotateAnimation = useRef(new Animated.Value(0)).current;
-  const rotation = Animated.loop(
-    Animated.timing(rotateAnimation, {
-      toValue: 1,
-      duration: 1000,
-      easing: Easing.linear,
-      useNativeDriver: Platform.OS !== 'web',
-    }),
-  );
-
-  let rotating = false;
-  const rotate = () => {
-    if (rotating) {
-      rotation.stop();
-      rotating = false;
-    } else {
-      rotation.reset();
-      rotation.start();
-      rotating = true;
-    }
-  };
-
-  const spin = rotateAnimation.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0deg', '360deg'],
-  });
-
-  return (
-    <ListItem
-      containerStyle={{
-        backgroundColor: theme.colors.primary,
-      }}
-      onPress={() => rotate()}
-    >
-      <Animated.View style={{ transform: [{ rotate: spin }] }}>
-        <Icon
-          name="sync"
-          size={24}
-        />
-      </Animated.View>
-      <ListItem.Content>
-        <ListItem.Title style={{
-          fontWeight: 'bold',
-          fontSize: 24,
-        }}
-        >
-          News
-        </ListItem.Title>
-      </ListItem.Content>
-    </ListItem>
-  );
-}
-
-SyncItem.propTypes = {
-  theme: PropTypes.object.isRequired,
-};
+import SyncItem from './listItems/syncItem';
+import CustomItem from './listItems/customItem';
+import FeedItem from './listItems/feedItem';
+import FolderAccordion from './listItems/folderAccordion';
 
 const feedHasUnreadItems = (feedId, items) => {
   for (const item of items) {
@@ -212,6 +29,7 @@ export default function ADrawer({
 }) {
   const [open, setOpen] = React.useState(true);
   const { theme } = useTheme();
+  const title = useSelector((state) => state.news.selectionTitle);
 
   const accordions = folders.map((folder) => {
     const feedItems = feeds.filter(
@@ -279,7 +97,12 @@ export default function ADrawer({
           }
           backgroundColor={theme.colors.primary}
           centerComponent={
-            <Text style={{ fontSize: 20, fontWeight: 'bold' }}>News</Text>
+            <Text
+              numberOfLines={1}
+              style={{ fontSize: 20, fontWeight: 'bold' }}
+            >
+              {title}
+            </Text>
           }
         />
         {content}

@@ -7,7 +7,9 @@ const initialState = {
   folders: [],
   selectedItems: [],
   selectionType: '',
+  selectionTitle: '',
   selectionId: -1,
+  syncing: false,
 };
 
 export const newsSlice = createSlice({
@@ -25,21 +27,26 @@ export const newsSlice = createSlice({
       state.folders = action.payload;
     },
     setSelectedByFeedId: (state, action) => {
-      state.selectedItems = state.allItems.filter((item) => (item.feedId === action.payload));
+      const { id, name } = action.payload;
+      state.selectedItems = state.allItems.filter((item) => (item.feedId === id));
       state.selectionId = action.payload;
       state.selectionType = 'feed';
+      state.selectionTitle = name;
     },
     setSelectedByFolderId: (state, action) => {
+      const { id, name } = action.payload;
+
       const feedIds = state.feeds.filter(
-        (feed) => (feed.folderId === action.payload),
+        (feed) => (feed.folderId === id),
       ).map(
-        ({ id }) => (id),
+        ({ id: feedId }) => (feedId),
       );
       state.selectedItems = state.allItems.filter(
         (item) => feedIds.includes(item.feedId),
       );
       state.selectionId = action.payload;
       state.selectionType = 'folder';
+      state.selectionTitle = name;
     },
     setSelectedByUnread: (state) => {
       state.selectedItems = state.allItems.filter(
@@ -47,6 +54,7 @@ export const newsSlice = createSlice({
       );
       state.selectionId = undefined;
       state.selectionType = 'unread';
+      state.selectionTitle = 'Unread';
     },
     setSelectedByStarred: (state) => {
       state.selectedItems = state.allItems.filter(
@@ -54,6 +62,10 @@ export const newsSlice = createSlice({
       );
       state.selectionId = undefined;
       state.selectionType = 'starred';
+      state.selectionTitle = 'Starred';
+    },
+    setSyncing: (state, action) => {
+      state.syncing = action.payload;
     },
   },
 });
@@ -66,6 +78,7 @@ export const {
   setSelectedByFolderId,
   setSelectedByUnread,
   setSelectedByStarred,
+  setSyncing,
 } = newsSlice.actions;
 
 export default newsSlice.reducer;

@@ -1,6 +1,5 @@
 import { Buffer } from 'buffer';
 import fetchRetry from 'fetch-retry';
-import { Alert, Platform } from 'react-native';
 
 const retryFetch = fetchRetry(fetch, {
   retries: 3,
@@ -8,8 +7,9 @@ const retryFetch = fetchRetry(fetch, {
 });
 
 const feedsUrl = (baseUrl) => (`${baseUrl}/index.php/apps/news/api/v1-3/feeds`);
-const itemsUrl = (baseUrl) => (`${baseUrl}/index.php/apps/news/api/v1-3/items?type=3&getRead=false&batchSize=-1`);
-const itemsUpdatedUrl = (baseUrl, lastModified) => (
+const unreadItemsUrl = (baseUrl) => (`${baseUrl}/index.php/apps/news/api/v1-3/items?type=3&getRead=false&batchSize=-1`);
+const starredItemsUrl = (baseUrl) => (`${baseUrl}/index.php/apps/news/api/v1-3/items?type=2&getRead=true&batchSize=-1`);
+const updateItemsUrl = (baseUrl, lastModified) => (
   `${baseUrl}/index.php/apps/news/api/v1-3/items/updated?lastModified=${lastModified}&type=3`
 );
 const foldersUrl = (baseUrl) => (`${baseUrl}/index.php/apps/news/api/v1-3/folders`);
@@ -24,24 +24,40 @@ async function sync(credentials, lastModified) {
   const { url } = credentials;
   const headers = authHeaders(credentials);
 
-  let urlForItems = '';
+  const calls = [
+    retryFetch(foldersUrl(url), { headers }),
+    retryFetch(feedsUrl(url), { headers }),
+  ];
+
   if (lastModified) {
-    urlForItems = itemsUpdatedUrl(url, lastModified);
+    calls.push(retryFetch(updateItemsUrl(url, lastModified), { headers }));
   } else {
-    urlForItems = itemsUrl(url);
+    calls.push(
+      retryFetch(unreadItemsUrl(url), { headers }),
+      retryFetch(starredItemsUrl(url), { headers }),
+    );
   }
 
-  const foldersResponse = retryFetch(foldersUrl(url), { headers });
-  const feedsResponse = retryFetch(feedsUrl(url), { headers });
-  const itemsResponse = retryFetch(urlForItems, { headers });
-  const [foldersResolved, feedsResolved, itemsResolved] = await Promise.all([
-    foldersResponse, feedsResponse, itemsResponse,
-  ]);
   try {
-    const [folders, feeds, items] = await Promise.all(
-      [foldersResolved.json(), feedsResolved.json(), itemsResolved.json()],
+    const resolved = await Promise.all(calls);
+    if (lastModified) {
+      const [foldersResolved, feedsResolved, itemsResolved] = resolved;
+      const [folders, feeds, items] = await Promise.all(
+        [foldersResolved.json(), feedsResolved.json(), itemsResolved.json()],
+      );
+      return { folders, feeds, items };
+    }
+
+    const [foldersResolved, feedsResolved, itemsResolved, itemsStarredResolved] = resolved;
+    const [folders, feeds, items, itemsStarred] = await Promise.all(
+      [
+        foldersResolved.json(),
+        feedsResolved.json(),
+        itemsResolved.json(),
+        itemsStarredResolved.json(),
+      ],
     );
-    return { folders, feeds, items };
+    return { folders, feeds, items: [...items, ...itemsStarred] };
   } catch (error) {
     console.error(error);
     return {

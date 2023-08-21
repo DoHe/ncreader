@@ -1,5 +1,7 @@
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { View, FlatList, useWindowDimensions } from 'react-native';
+import {
+  View, FlatList, useWindowDimensions,
+} from 'react-native';
 import React from 'react';
 import PropTypes from 'prop-types';
 import {
@@ -40,7 +42,7 @@ function shareItem(item) {
   console.log(`Should share: ${item.id}`);
 }
 
-function FeedItem({ item, theme, bodyPreviewSize }) {
+function FeedItem({ item, theme }) {
   const doubleTap = Gesture.Tap().numberOfTaps(2).onStart(() => {
     starItem(item);
   });
@@ -88,25 +90,31 @@ function FeedItem({ item, theme, bodyPreviewSize }) {
               display: 'flex',
               flexShrink: 10,
             }}>
-              <Text style={{
+              <Text
+              numberOfLines={2}
+              style={{
                 fontWeight: item.unread ? 'bold' : 'normal',
                 color: item.unread ? theme.colors.black : theme.colors.grey3,
               }}>
                 {item.title}
               </Text>
-              <Text style={{
-                color: item.unread ? theme.colors.black : theme.colors.grey3,
-                marginBottom: 5,
-                marginTop: 5,
-              }}>
-                { `${item.body.replace(htmlTagsRegex, '').trim().slice(0, bodyPreviewSize)}...` }
-              </Text>
               <Text
+                numberOfLines={2}
+                style={{
+                  color: item.unread ? theme.colors.black : theme.colors.grey3,
+                  marginBottom: 5,
+                  marginTop: 5,
+                }}>
+                { item.body.replace(htmlTagsRegex, '').trim()}
+              </Text>
+              <View
                 style={{
                   display: 'flex',
                   fontStyle: 'italic',
                   alignItems: 'center',
                   marginTop: 'auto',
+                  flexWrap: 'nowrap',
+                  flexDirection: 'row',
                 }}
               >
                 { item.feedFavicon && (
@@ -118,15 +126,30 @@ function FeedItem({ item, theme, bodyPreviewSize }) {
                     }}
                   />
                 )}
-                { item.feedTitle && (
-                  <Text style={{ color: theme.colors.grey4 }}>
-                    &nbsp;{item.feedTitle}
-                  </Text>
-                )}
-                <Text style={{ color: theme.colors.grey4 }}>
-                  &nbsp;·&nbsp;{ moment(item.pubDate * 1000).fromNow() }
+                <Text
+                  numberOfLines={1}
+                  style={{
+                    color: theme.colors.grey4,
+                    flexShrink: 100,
+                  }}
+                >
+                  &nbsp;{item.feedTitle}
                 </Text>
-              </Text>
+                <Text style={{
+                  color: theme.colors.grey4,
+                }}>
+                  &nbsp;·&nbsp;
+                </Text>
+                <Text
+                  numberOfLines={1}
+                  style={{
+                    color: theme.colors.grey4,
+                    flexShrink: 1,
+                  }}
+                >
+                  { moment(item.pubDate * 1000).fromNow(true) }
+                </Text>
+              </View>
             </View>
             <View
               style={{
@@ -165,16 +188,12 @@ function FeedItem({ item, theme, bodyPreviewSize }) {
 FeedItem.propTypes = {
   item: PropTypes.object.isRequired,
   theme: PropTypes.object.isRequired,
-  bodyPreviewSize: PropTypes.number.isRequired,
 };
 
 export default function Feed({ items, feeds }) {
   const { theme } = useTheme();
   const feedsMap = Object.fromEntries(feeds.map((feed) => [feed.id, feed]));
   const mappedItems = items.map((item) => mapItem(item, feedsMap));
-
-  const dimensions = useWindowDimensions();
-  const bodyPreviewSize = dimensions.width >= breakPointDesktop ? 400 : 100;
 
   return <FlatList
         style={{ marginLeft: 5, marginRight: 5, width: '100%' }}
@@ -184,7 +203,6 @@ export default function Feed({ items, feeds }) {
           <FeedItem
             item={item}
             theme={theme}
-            bodyPreviewSize={bodyPreviewSize}
           />
         )}
       />;
