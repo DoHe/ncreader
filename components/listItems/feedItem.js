@@ -1,11 +1,13 @@
 import { useDispatch, useSelector } from 'react-redux';
-import { ListItem, useTheme, Image } from '@rneui/themed';
+import {
+  ListItem, useTheme, Image, Badge,
+} from '@rneui/themed';
 import React from 'react';
 import PropTypes from 'prop-types';
 import { setSelectedByFeedId } from '../../slices/newsSlice';
 
 function FeedItem({
-  id, name, faviconLink, setOpen,
+  id, name, faviconLink, displayCount, setOpen,
 }) {
   const dispatch = useDispatch();
   const { theme } = useTheme();
@@ -33,6 +35,7 @@ function FeedItem({
       <ListItem.Content>
         <ListItem.Title>{name}</ListItem.Title>
       </ListItem.Content>
+      <Badge value={displayCount} status="primary" />
     </ListItem>
   );
 }
@@ -41,6 +44,7 @@ FeedItem.propTypes = {
   name: PropTypes.string.isRequired,
   id: PropTypes.number.isRequired,
   faviconLink: PropTypes.string,
+  displayCount: PropTypes.number.isRequired,
   setOpen: PropTypes.func.isRequired,
 };
 

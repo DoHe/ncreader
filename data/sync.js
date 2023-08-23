@@ -37,7 +37,6 @@ function dispatchData(dispatch, { folders, feeds, items }) {
 
 async function sync({ dispatch, mocked, credentials }) {
   dispatch(setSyncing(true));
-  console.log('syncing');
   try {
     if (mocked) {
       const data = {
@@ -59,7 +58,6 @@ async function sync({ dispatch, mocked, credentials }) {
     let data = {};
     const syncStatus = await AsyncStorage.getItem(syncStatusKey);
     if (syncStatus === syncStatusSynced) {
-      console.log('resync');
       data = JSON.parse(await AsyncStorage.getItem(syncDataKey));
 
       dispatchData(dispatch, data);
@@ -70,7 +68,11 @@ async function sync({ dispatch, mocked, credentials }) {
           lastModified = item.lastModified;
         }
       });
-      const newData = await subsequentSync(credentials, lastModified);
+      const newData = await subsequentSync(credentials, lastModified, data.feeds);
+      if (!newData.items.items.length) {
+        console.log('no items');
+        return;
+      }
       for (const oldItem of data.items.items) {
         let isUpdated = false;
         for (const newItem of newData.items.items) {
@@ -85,6 +87,12 @@ async function sync({ dispatch, mocked, credentials }) {
       }
       newData.items.items = newData.items.items.filter((item) => item.unread || item.starred);
       sortData(newData);
+      newData.folders.folders = newData.folders.folders.length
+        ? newData.folders.folders
+        : data.folders.folders;
+      newData.feeds.feeds = newData.feeds.feeds.length
+        ? newData.feeds.feeds
+        : data.feeds.feeds;
       AsyncStorage.setItem(syncDataKey, JSON.stringify(newData));
       dispatchData(dispatch, newData);
     } else {
@@ -99,7 +107,6 @@ async function sync({ dispatch, mocked, credentials }) {
       dispatchData(dispatch, data);
     }
   } finally {
-    console.log('done');
     dispatch(setSyncing(false));
   }
 }

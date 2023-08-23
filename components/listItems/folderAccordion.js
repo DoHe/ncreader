@@ -1,13 +1,14 @@
 import { useDispatch, useSelector } from 'react-redux';
 import {
-  Icon, ListItem, Text, useTheme,
+  Icon, ListItem, Text, useTheme, Badge,
 } from '@rneui/themed';
 import React from 'react';
 import PropTypes from 'prop-types';
+import { Pressable } from 'react-native';
 import { setSelectedByFolderId } from '../../slices/newsSlice';
 
 function FolderAccordion({
-  id, name, children, setOpen,
+  id, name, children, displayCount, setOpen,
 }) {
   const [expanded, setExpanded] = React.useState(false);
   const { theme } = useTheme();
@@ -18,7 +19,7 @@ function FolderAccordion({
 
   return (<ListItem.Accordion
       content={
-        <Text
+        <Pressable
           onPress={() => {
             dispatch(setSelectedByFolderId({ id, name }));
             setOpen(false);
@@ -26,6 +27,7 @@ function FolderAccordion({
           style={{
             display: 'flex',
             flex: 1,
+            flexDirection: 'row',
           }}
         >
           <Icon
@@ -36,7 +38,8 @@ function FolderAccordion({
           <ListItem.Content>
             <ListItem.Title>{name}</ListItem.Title>
           </ListItem.Content>
-        </Text>
+          <Badge value={displayCount} status="primary" />
+        </Pressable>
       }
       isExpanded={expanded}
       onPress={() => { setExpanded(!expanded); }}
@@ -54,6 +57,7 @@ FolderAccordion.propTypes = {
   name: PropTypes.string.isRequired,
   id: PropTypes.number.isRequired,
   children: PropTypes.array.isRequired,
+  displayCount: PropTypes.number.isRequired,
   setOpen: PropTypes.func.isRequired,
 };
 

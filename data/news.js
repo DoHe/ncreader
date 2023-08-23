@@ -20,43 +20,21 @@ function authHeaders({ username, password }) {
   return headers;
 }
 
-async function sync(credentials, lastModified) {
+async function initialSync(credentials) {
   const { url } = credentials;
   const headers = authHeaders(credentials);
 
   const calls = [
-    retryFetch(foldersUrl(url), { headers }),
-    retryFetch(feedsUrl(url), { headers }),
+    fetch(foldersUrl(url), { headers }),
+    fetch(feedsUrl(url), { headers }),
+    fetch(unreadItemsUrl(url), { headers }),
+    fetch(starredItemsUrl(url), { headers }),
   ];
 
-  if (lastModified) {
-    calls.push(retryFetch(updateItemsUrl(url, lastModified), { headers }));
-  } else {
-    calls.push(
-      retryFetch(unreadItemsUrl(url), { headers }),
-      retryFetch(starredItemsUrl(url), { headers }),
-    );
-  }
-
   try {
-    const resolved = await Promise.all(calls);
-    if (lastModified) {
-      const [foldersResolved, feedsResolved, itemsResolved] = resolved;
-      const [folders, feeds, items] = await Promise.all(
-        [foldersResolved.json(), feedsResolved.json(), itemsResolved.json()],
-      );
-      return { folders, feeds, items };
-    }
-
-    const [foldersResolved, feedsResolved, itemsResolved, itemsStarredResolved] = resolved;
-    const [folders, feeds, items, itemsStarred] = await Promise.all(
-      [
-        foldersResolved.json(),
-        feedsResolved.json(),
-        itemsResolved.json(),
-        itemsStarredResolved.json(),
-      ],
-    );
+    const resolvedCalls = await Promise.all(calls);
+    const jsons = await Promise.all(resolvedCalls.map((call) => call.json()));
+    const [folders, feeds, items, itemsStarred] = jsons;
     return { folders, feeds, items: [...items, ...itemsStarred] };
   } catch (error) {
     console.error(error);
@@ -68,12 +46,55 @@ async function sync(credentials, lastModified) {
   }
 }
 
-async function initialSync(credentials) {
-  return sync(credentials);
-}
+async function subsequentSync(credentials, lastModified, oldFeeds) {
+  const { url } = credentials;
+  const headers = authHeaders(credentials);
 
-async function subsequentSync(credentials, lastModified) {
-  return sync(credentials, lastModified);
+  const feedIds = oldFeeds.feeds.map((feed) => feed.id);
+
+  let items = [];
+  try {
+    const itemsResponse = await fetch(updateItemsUrl(url, lastModified), { headers });
+    items = await itemsResponse.json();
+  } catch (error) {
+    console.error(error);
+    return {
+      folders: { folders: [] },
+      feeds: { feeds: [] },
+      items: { items: [] },
+    };
+  }
+
+  let needFullSync = false;
+  for (const { feedId } of items.items) {
+    if (!feedIds.includes(feedId)) {
+      needFullSync = true;
+      break;
+    }
+  }
+
+  if (!needFullSync) {
+    return { items, folders: { folders: [] }, feeds: { feeds: [] } };
+  }
+
+  const calls = [
+    fetch(foldersUrl(url), { headers }),
+    fetch(feedsUrl(url), { headers }),
+  ];
+
+  try {
+    const resolvedCalls = await Promise.all(calls);
+    const jsons = await Promise.all(resolvedCalls.map((call) => call.json()));
+    const [folders, feeds] = jsons;
+    return { folders, feeds, items };
+  } catch (error) {
+    console.error(error);
+    return {
+      folders: { folders: [] },
+      feeds: { feeds: [] },
+      items: { items: [] },
+    };
+  }
 }
 
 export { initialSync, subsequentSync };

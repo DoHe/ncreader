@@ -15,13 +15,24 @@ import CustomItem from './listItems/customItem';
 import FeedItem from './listItems/feedItem';
 import FolderAccordion from './listItems/folderAccordion';
 
-const feedHasUnreadItems = (feedId, items) => {
+const unreadCountFeed = (feedId, items) => {
+  let count = 0;
   for (const item of items) {
     if (item.unread && item.feedId === feedId) {
-      return true;
+      count += 1;
     }
   }
-  return false;
+  return count;
+};
+
+const unreadCountProperty = (propertyName, items) => {
+  let count = 0;
+  for (const item of items) {
+    if (item[propertyName]) {
+      count += 1;
+    }
+  }
+  return count;
 };
 
 export default function ADrawer({
@@ -31,15 +42,28 @@ export default function ADrawer({
   const { theme } = useTheme();
   const title = useSelector((state) => state.news.selectionTitle);
 
+  const unreadCountsFolder = {};
+  const unreadCountsFeed = {};
+
   const accordions = folders.map((folder) => {
     const feedItems = feeds.filter(
-      (feed) => (feed.folderId === folder.id) && feedHasUnreadItems(feed.id, items),
+      (feed) => {
+        if (feed.folderId !== folder.id) {
+          return false;
+        }
+        const count = unreadCountFeed(feed.id, items);
+        unreadCountsFeed[feed.id] = count;
+        const prevCount = unreadCountsFolder[folder.id] || 0;
+        unreadCountsFolder[folder.id] = prevCount + count;
+        return count;
+      },
     ).map((feed) => (
       <FeedItem
         key={feed.id}
         id={feed.id}
         name={feed.title}
         faviconLink={feed.faviconLink}
+        displayCount={unreadCountsFeed[feed.id]}
         setOpen={setOpen}
       />
     ));
@@ -47,6 +71,7 @@ export default function ADrawer({
       key={folder.id}
       id={folder.id}
       name={folder.name}
+      displayCount={unreadCountsFolder[folder.id]}
       setOpen={setOpen}
     >
       {feedItems}
@@ -73,6 +98,7 @@ export default function ADrawer({
                 selectionFunc={setSelectedByStarred}
                 selectionType='starred'
                 setOpen={setOpen}
+                displayCount={unreadCountProperty('starred', items)}
               />
               <CustomItem
                 title='Unread'
@@ -81,6 +107,7 @@ export default function ADrawer({
                 selectionFunc={setSelectedByUnread}
                 selectionType='unread'
                 setOpen={setOpen}
+                displayCount={unreadCountProperty('unread', items)}
               />
               {accordions}
             </StyledView>

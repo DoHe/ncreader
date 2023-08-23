@@ -29,7 +29,7 @@ export const newsSlice = createSlice({
     setSelectedByFeedId: (state, action) => {
       const { id, name } = action.payload;
       state.selectedItems = state.allItems.filter((item) => (item.feedId === id));
-      state.selectionId = action.payload;
+      state.selectionId = id;
       state.selectionType = 'feed';
       state.selectionTitle = name;
     },
@@ -44,7 +44,7 @@ export const newsSlice = createSlice({
       state.selectedItems = state.allItems.filter(
         (item) => feedIds.includes(item.feedId),
       );
-      state.selectionId = action.payload;
+      state.selectionId = id;
       state.selectionType = 'folder';
       state.selectionTitle = name;
     },
