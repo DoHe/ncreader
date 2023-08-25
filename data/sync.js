@@ -32,10 +32,11 @@ function dispatchData(dispatch, { folders, feeds, items }) {
   dispatch(setAllItems(items.items));
   dispatch(setFolders(folders.folders));
   dispatch(setFeeds(feeds.feeds));
-  dispatch(setSelectedByUnread());
 }
 
-async function sync({ dispatch, mocked, credentials }) {
+async function sync({
+  dispatch, mocked, credentials, startup = false,
+}) {
   dispatch(setSyncing(true));
   try {
     if (mocked) {
@@ -59,8 +60,9 @@ async function sync({ dispatch, mocked, credentials }) {
     const syncStatus = await AsyncStorage.getItem(syncStatusKey);
     if (syncStatus === syncStatusSynced) {
       data = JSON.parse(await AsyncStorage.getItem(syncDataKey));
-
-      dispatchData(dispatch, data);
+      if (startup) {
+        dispatchData(dispatch, data);
+      }
 
       let lastModified = 0;
       data.items.items.forEach((item) => {

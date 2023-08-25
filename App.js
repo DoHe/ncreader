@@ -13,6 +13,7 @@ import Feed from './components/feed';
 import Login from './components/login';
 import sync from './data/sync';
 import getCredentials from './data/credentials';
+import { setSelectedByUnread } from './slices/newsSlice';
 
 const mocked = false;
 
@@ -59,8 +60,9 @@ function App() {
 
   const getData = async () => {
     await sync({
-      dispatch, mocked, credentials,
+      dispatch, mocked, credentials, startup: true,
     });
+    dispatch(setSelectedByUnread());
   };
 
   useEffect(() => {

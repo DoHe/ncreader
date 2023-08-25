@@ -2,8 +2,8 @@ import { useSelector } from 'react-redux';
 import {
   Header, Icon, Text, useTheme,
 } from '@rneui/themed';
-import React from 'react';
-import { Platform } from 'react-native';
+import React, { useEffect } from 'react';
+import { Alert, BackHandler, Platform } from 'react-native';
 import { Drawer } from 'react-native-drawer-layout';
 import PropTypes from 'prop-types';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -77,6 +77,24 @@ export default function ADrawer({
       {feedItems}
     </FolderAccordion>);
   }).filter((component) => component);
+
+  useEffect(() => {
+    const backAction = () => {
+      if (open) {
+        BackHandler.exitApp();
+      } else {
+        setOpen(true);
+      }
+      return true;
+    };
+
+    const backHandler = BackHandler.addEventListener(
+      'hardwareBackPress',
+      backAction,
+    );
+
+    return () => backHandler.remove();
+  }, []);
 
   return (
     <StyledView style={{

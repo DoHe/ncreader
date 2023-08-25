@@ -12,6 +12,20 @@ const initialState = {
   syncing: false,
 };
 
+const toggleStarred = (item, id) => {
+  if (item.id === id) {
+    return { ...item, starred: !item.starred };
+  }
+  return item;
+};
+
+const markRead = (item, id) => {
+  if (item.id === id) {
+    return { ...item, unread: false };
+  }
+  return item;
+};
+
 export const newsSlice = createSlice({
   name: 'news',
   initialState,
@@ -67,10 +81,21 @@ export const newsSlice = createSlice({
     setSyncing: (state, action) => {
       state.syncing = action.payload;
     },
+    markItemRead: (state, action) => {
+      const id = action.payload;
+      state.allItems = state.allItems.map((item) => markRead(item, id));
+      state.selectedItems = state.selectedItems.map((item) => markRead(item, id));
+    },
+    toggleStarredItem: (state, action) => {
+      const id = action.payload;
+      state.allItems = state.allItems.map((item) => toggleStarred(item, id));
+      state.selectedItems = state.selectedItems.map((item) => toggleStarred(item, id));
+    },
   },
 });
 
 export const {
+  markItemRead,
   setAllItems,
   setFeeds,
   setFolders,
@@ -79,6 +104,7 @@ export const {
   setSelectedByUnread,
   setSelectedByStarred,
   setSyncing,
+  toggleStarredItem,
 } = newsSlice.actions;
 
 export default newsSlice.reducer;

@@ -13,6 +13,7 @@ const updateItemsUrl = (baseUrl, lastModified) => (
   `${baseUrl}/index.php/apps/news/api/v1-3/items/updated?lastModified=${lastModified}&type=3`
 );
 const foldersUrl = (baseUrl) => (`${baseUrl}/index.php/apps/news/api/v1-3/folders`);
+const markUrl = (baseUrl, id, method) => (`${baseUrl}/index.php/apps/news/api/v1-3/items/${id}/${method}`);
 
 function authHeaders({ username, password }) {
   const headers = new Headers();
@@ -97,4 +98,25 @@ async function subsequentSync(credentials, lastModified, oldFeeds) {
   }
 }
 
-export { initialSync, subsequentSync };
+function markItem({ id, credentials, method }) {
+  const { url } = credentials;
+  const headers = authHeaders(credentials);
+
+  return fetch(markUrl(url, id, method), { method: 'POST', headers });
+}
+
+function starItem({ id, credentials }) {
+  markItem({ id, credentials, method: 'star' });
+}
+
+function unstarItem({ id, credentials }) {
+  markItem({ id, credentials, method: 'unstar' });
+}
+
+function readItem({ id, credentials }) {
+  markItem({ id, credentials, method: 'read' });
+}
+
+export {
+  initialSync, subsequentSync, readItem, starItem, unstarItem,
+};
