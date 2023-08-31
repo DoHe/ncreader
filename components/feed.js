@@ -1,5 +1,5 @@
 import { FlatList } from 'react-native';
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import { useTheme } from '@rneui/themed';
 import { useDispatch, useSelector } from 'react-redux';
@@ -26,9 +26,11 @@ function mapItem(item, feedsMap) {
 }
 
 function onItemsChanged(event) {
-  const { viewableItems } = event;
+  const { changed, viewableItems } = event;
+  if (changed.length > 1) {
+    return;
+  }
   const mostRecent = Math.max(...viewableItems.map((item) => (item.item.pubDate)));
-  const { changed } = event;
   changed.forEach(({ isViewable, item }) => {
     if (!isViewable) {
       if (item.pubDate >= mostRecent) {
@@ -54,13 +56,17 @@ export default function Feed({ items, feeds }) {
   const dispatch = useDispatch();
   const credentials = useSelector((state) => state.user.credentials);
 
+  const viewabilityConfigCallbackPairs = useRef([{
+    onViewableItemsChanged: onItemsChanged,
+  }]);
+
   return <FlatList
         style={{
           marginLeft: 5,
           marginRight: 5,
           width: '100%',
         }}
-        contentContainerStyle={{ height: '105%' }}
+        // contentContainerStyle={{ height: '105%' }}
         data={mappedItems}
         keyExtractor={({ id }) => id}
         onScroll={onScroll}
@@ -71,7 +77,10 @@ export default function Feed({ items, feeds }) {
           setRefreshing(false);
         }}
         refreshing={refreshing}
-        onViewableItemsChanged={onItemsChanged}
+        // onViewableItemsChanged={onItemsChanged}
+        viewabilityConfigCallbackPairs={
+          viewabilityConfigCallbackPairs.current
+        }
         renderItem={({ item }) => (
           <FeedItem
             item={item}
