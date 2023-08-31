@@ -32,13 +32,6 @@ function shareItem(item) {
 function FeedItem({ item, theme }) {
   const dispatch = useDispatch();
   const credentials = useSelector((state) => state.user.credentials);
-  if (item.spacer) {
-    return <ListItem>
-      <View style={{
-        height: 90,
-      }}/>
-    </ListItem>;
-  }
   return (
     <ListItem.Swipeable
       bottomDivider={true}

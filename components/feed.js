@@ -2,7 +2,9 @@ import { FlatList } from 'react-native';
 import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 import { useTheme } from '@rneui/themed';
+import { useDispatch, useSelector } from 'react-redux';
 import FeedItem from './feedItem';
+import sync from '../data/sync';
 
 const imageRegex = /<img[\s\S]*?src="(.*?)"[\s\S]*?>/;
 
@@ -49,22 +51,24 @@ export default function Feed({ items, feeds }) {
   const [refreshing, setRefreshing] = useState(false);
   const feedsMap = Object.fromEntries(feeds.map((feed) => [feed.id, feed]));
   const mappedItems = items.map((item) => mapItem(item, feedsMap));
-  let spacersAdded = 0;
-  while (mappedItems.length < 6) {
-    mappedItems.push({ spacer: true, id: `spacer-${spacersAdded}` });
-    spacersAdded += 1;
-  }
+  const dispatch = useDispatch();
+  const credentials = useSelector((state) => state.user.credentials);
 
   return <FlatList
-        style={{ marginLeft: 5, marginRight: 5, width: '100%' }}
+        style={{
+          marginLeft: 5,
+          marginRight: 5,
+          width: '100%',
+        }}
+        contentContainerStyle={{ height: '105%' }}
         data={mappedItems}
         keyExtractor={({ id }) => id}
         onScroll={onScroll}
         overScrollMode='always'
-        onRefresh={() => {
-          console.log('refreshing');
+        onRefresh={async () => {
           setRefreshing(true);
-          setTimeout(() => setRefreshing(false), 2000);
+          await sync({ dispatch, credentials });
+          setRefreshing(false);
         }}
         refreshing={refreshing}
         onViewableItemsChanged={onItemsChanged}
